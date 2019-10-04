@@ -1,0 +1,2714 @@
+---
+title: |
+    | \vspace{5cm} Programa Pase Cultural:
+    | Evaluación de resultados
+subtitle: "Reporte analítico" 
+author: "Antonio Vázquez Brust"
+header-includes:
+   - \usepackage[spanish]{babel}
+date: '`r format(Sys.Date(), "%d de %B, %Y")`'
+output:
+   bookdown::pdf_document2:
+     toc: no
+---
+
+\pagebreak
+\tableofcontents
+\listoffigures
+\listoftables
+\pagebreak
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, 
+                      warning=FALSE, 
+                      message=FALSE,
+                      fig.width=7,
+                      fig.align = "center",
+                      dev="cairo_pdf")
+
+library(Cairo)
+extrafont::loadfonts()
+
+library(tidyverse)
+library(lubridate)
+library(forcats)
+library(hrbrthemes)
+library(patchwork)
+library(sf)
+library(ggalluvial)
+library(kableExtra)
+
+
+fecha_de_datos <- "29 de julio de 2019"
+
+alumnos <- read_csv("../entregables/bases/alumnos_georeferenciados.csv") 
+  
+escuelas <- read_csv("../entregables/bases/escuelas_georeferenciadas.csv")
+
+comercios <- read_csv("../entregables/bases/comercios_georeferenciados.csv") %>% 
+  mutate(Rubro = ifelse(Rubro == "Museos", "Museo", Rubro))
+
+tabla_rubros <- read_csv("../entregables/cruce_comercios_categoria.csv")
+
+transacciones <- read_csv("../entregables/bases/transacciones.csv") %>% 
+    mutate(Comercio = str_remove(Comercio, "491 - COMPRA     ")) %>% 
+    left_join(tabla_rubros) %>% 
+    mutate(Fecha = ymd(substr(Fecha, 1, 10)))
+
+# Las transacciones con coordenadas identificadas
+transacciones_geo <- read_csv("../entregables/bases/transacciones_georeferenciadas.csv") %>% 
+    mutate(Comercio = str_remove(Comercio, "491 - COMPRA     ")) %>% 
+    left_join(tabla_rubros)  %>% 
+    mutate(Fecha = ymd(substr(Fecha, 1, 10)))
+
+
+# Identificamos a los alumnos que registran transacciones
+alumnos <- alumnos %>% 
+  mutate(con_transacciones = num__docum %in% unique(transacciones$Nro_Doc))
+
+# Cargamos datos del censo 2010 a nivel radio censal 
+radios <- st_read("../entregables/data auxiliar/Censo 2010/CABA.geojson", 
+                  stringsAsFactors = FALSE, 
+                  quiet = TRUE)
+# Incluye un índice de NSE calculado ad-hoc, por análisis de 
+# componentes principales (PCA), que ha combinado datos de censo referidos a:
+# • Nivel educacional del principal sostén del hogar (PSH)
+# • Nivel ocupacional del PSH
+# • Posesiones materiales del hogar
+# https://repositorio.cepal.org/bitstream/handle/11362/6032/1/S028552_es.pdf
+
+# Las variables utilizadas fueron: 
+# PERSONA.Computadora._.Sí, por "Tenencia de bienes materiales"
+# PERSONA.Nivel.educativo.cursa.o.cursó._.Universitario, por "Nivel de educación"
+# PERSONA.Condición.de.actividad._.Desocupado, por "Categoría ocupacional (desempleo)"
+
+
+# Asignamos a cada alumno su radio censal y NSE
+alumnos <- alumnos %>% 
+  filter(!is.na(lat_domicilio)) %>% 
+  st_as_sf(coords = c("lng_domicilio", "lat_domicilio"), crs = 4326) %>% 
+  st_join(select(radios, decil_NSE)) %>% 
+  select(numero, decil_NSE) %>% 
+  {left_join(alumnos, .)}
+  
+
+# Definimos un theme map-friendly
+
+theme_map <- theme(text=element_text(family="IBM Plex Sans Text"),
+                   panel.grid.major = element_line(color = "white"), 
+                   panel.grid.minor = element_blank(),
+                   panel.background = element_blank(),
+                   plot.background = element_blank(),
+                   panel.border = element_blank(),
+                   strip.background = element_blank(),
+                   axis.line = element_blank(),
+                   axis.text.x = element_blank(),
+                   axis.text.y = element_blank(),
+                   axis.ticks = element_blank(),
+                   axis.title.x = element_blank(),
+                   axis.title.y = element_blank(),
+                   legend.key = element_rect(fill = NA))
+
+# Y otro cancherito 
+
+theme_minimalista <- theme(text=element_text(family="IBM Plex Sans Text"),
+                           panel.grid.minor = element_blank(),
+                           panel.grid.major = element_blank(),
+                           panel.background = element_blank(),
+                           plot.background = element_blank(),
+                           panel.border = element_blank(),
+                           strip.background = element_blank(),
+                           axis.line = element_blank(),
+                           legend.key = element_rect(fill = NA))
+
+
+
+
+# Cargamos la grilla de calles para usar como basemap
+calles <- st_read("../entregables/data auxiliar/callejero/callejero_badata.geojson", 
+                  quiet = TRUE) %>% 
+    summarise()
+
+# principales espacios verdes
+
+espacios_verdes_detalle <- st_read("../entregables/data auxiliar/espacios_verdes/espacios_verdes_CABA.geojson", 
+                  stringsAsFactors = FALSE, 
+                  quiet = TRUE)
+
+espacios_verdes <- espacios_verdes_detalle %>% 
+    summarise()
+
+mapabase <- ggplot() +
+    geom_sf(data = espacios_verdes, fill = "darkseagreen", color = NA, alpha = .5) +
+    geom_sf(data = calles, alpha = 0.1, size = .05) +
+    theme_map
+
+
+```
+
+# Resumen ejecutivo
+
+El presente reporte describe los resultados del análisis efectuado sobre los registros de transacciones asociados al uso del Pase Cultural junto a diversas fuentes de datos complementarias, tales como encuestas realizadas entre el público objetivo del Programa. 
+
+También explica la metodología utilizada durante el proceso analítico, y expone las principales conclusiones que se desprenden del mismo.
+
+Se incluye además una serie de entregables, que en su conjunto aportan los datos e instrucciones necesarias para poner en marcha un Sistema de Información Geográfica que permita recuperar y visualizar la información producida, repetir los análisis -o generar nuevos- y agregar datos disponibles en el futuro.
+
+\pagebreak
+# Principales fuentes de datos
+
+
+## Registros provistos por aŕeas del Gobierno de la Ciudad Autónoma de Buenos Aires
+
+Los resultados presentados en este reporte se obtuvieron en base al procesamiento y análisis de un conjunto de bases de datos facilitadas por diversa área del Gobierno de la Ciudad. Se resume a continuación el volumen y atributos de las fuentes, cuya actualización más reciente -al momento de realizar análisis- fue el `r fecha_de_datos`.
+
+
+### Base de transacciones de Pase Cultural
+
+__Unidad de análisis:__ transacción comercial realizada con un Pase Cultural en alguno de los establecimientos adheridos al programa
+__Origen:__ Banco Ciudad de Buenos Aires
+__Cantidad de registros:__ `r nrow(transacciones)`
+__Atributos de interés:__ Apellido y nombre del beneficiario del Pase, comercio, importe, fecha 
+
+### Base de beneficiarios
+
+__Unidad de análisis:__ Beneficiario del Programa Pase Cultural
+__Origen:__ Subsecretaría de Promoción Social y Dirección General de Promoción Cultural
+__Cantidad de Registros:__ `r nrow(alumnos)`
+__Atributos de interés:__ Apellido y nombre del beneficiario del Pase, documento de identidad, sexo, domicilio, tipo de domicilio (ciudad formal o asentamiento precario), localidad, origen de su inscripción al Programa (auto-gestionado, durante evento público, tras visita de promoción a su escuela), escuela a la que asiste.
+
+### Base de establecimientos educativos
+
+__Unidad de análisis:__ Establecimiento educativo público en la Ciudad de Buenos Aires con alumnos inscriptos como beneficiarios del Programa
+__Origen:__ Portal de Datos Abiertos, Dirección General de Calidad Institucional y Gobierno Abierto
+__Cantidad de Registros:__ `r nrow(escuelas)`
+__Atributos de interés:__ Clave Única de Establecimiento, dirección, nivel educativo
+
+### Base de comercios e instituciones adheridas al Programa
+ 
+__Unidad de análisis:__ Comercio o institución adherida al Programa
+__Origen:__ Subsecretaría de Promoción Social, Ministerio de Desarrollo Humano y Hábitat, GCABA
+__Cantidad de Registros:__ `r nrow(alumnos)`
+__Atributos de interés:__ Nombre del comercio, rubro, dirección
+ 
+## Encuesta "Pase Cultural" 
+
+Con el fin de obtener información de fuente primaria se realizó una encuesta presencial entre jóvenes de la Ciudad de Buenos Aires. La encuesta se diseñó para medir actitudes y preferencias de los jóvenes respecto al consumo de cultura y participación en actividades asociadas.
+
+Las preguntas fueron redactadas con el fin de obtener respuestas que aporten información complementaria a los registros de uso del Pase Cultural. Los registros del pase capturan las transacciones (compras) que los beneficiarios realizan al consumir la oferta cultural ofrecida por las empresas e instituciones que participan en el Programa. Esa información ofrece un alto grado de detalle para analizar cuáles son las opciones preferidas, pero no permite establecer las razones por las cuales ciertos tipos de oferta son consumidos en mayor o menor medida. Los resultados de la Encuesta arrojan luz precisamente sobre la dimensión de gustos y actitudes, o "porqué no eligen lo que no eligen".
+
+### El instrumento
+
+La encuesta consistió en un cuestionario de 11 preguntas, varias de ellas de tipo _múltiple choice_ con y sin orden de preferencia, presentadas por vía de una aplicación web interactiva en la plataforma _Typeform.com_.
+
+Al tomar el cuestionario forma de aplicación web fue posible administrar la encuesta de modo atractivo para el público objetivo, presentándola en eventos culturales donde se esperaba afluencia de jóvenes. 
+
+La encuesta pudo ser completada tanto mediante el uso de pantallas táctiles de gran tamaño (Figura \@ref(fig:fotoEncuestaTouchscreen)) como a través de _tablets_ ofrecidas a los participantes por el personal del GCBA que participó de los eventos (Figura \@ref(fig:fotoEncuestaTablet)).
+
+```{r fotoEncuestaTouchscreen, fig.cap="Participantes respondiendo a la encuesta por vía de pantalla táctil", dpi=250}
+knitr::include_graphics("../Encuesta/fotos/llenado_touchscreen.png")
+```
+
+```{r fotoEncuestaTablet, fig.cap="Participantes respondiendo a la encuesta por vía de tablet", dpi=200, dpi=250}
+knitr::include_graphics("../Encuesta/fotos/llenado_tablet.png")
+```
+
+### Público objetivo
+
+El Pase Cultural está destinado a alumnos de escuela secundaria, en sus tres últimos años de cursada (típicamente de 15 a 18 años de edad). Para que las respuestas de la encuesta se ajusten a la audiencia del Pase, se buscó la participación de jóvenes de 14 a 18 años de edad. Dado que hubiera sido complejo filtrar a la audiencia por edad, se permitió que todos los jóvenes interesados completaran la encuesta, para luego considerar sólo las respuestas provistas por personas que dijeron tener entre 14 y 18 años.
+
+
+### Ejecución
+
+La encuesta se realizó durante el 2019, en distintas instancias: en el marco del _Festival A Cara de Perro_ en el Parque Centenario -una competencia de rap organizada con el auspicio del Programa Pase Cultural-, durante el evento de _Anuncio de seleccionados Clave 13-17_ -un concurso literario- en el Centro Cultural Recoleta (CMR), y en la _Muestra de Jornada Extendida con Formación Profesional_, una exposición destinada a alumnos de escuela secundaria en el Centro Metropolitano de Diseño (CMD). 
+
+En todos los casos se trató de actividades gratuitas con afluencia de público joven.
+
+```{r tablaEncuesta}
+tabla_encuesta <- tribble(
+  ~Evento,~Fecha, ~`Encuestas válidas`, ~`Total acumulado`,
+  #------------------|-------------|------|-----
+  "Parque Centenario", "12/05/2019",   16,  15,
+  "CCR",               "23/06/2019",  115, 131,
+  "CMD",               "02/07/2019",  128, 259,
+  "CMD",               "03/07/2019",  133, 392
+)
+
+tabla_encuesta %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Sitios de encuesta y cantidad de respuestas válidas obtenidas") %>% 
+  kable_styling(latex_options = c("striped")) 
+
+```
+
+
+\pagebreak
+# Análisis descriptivo
+
+### Alcance geográfico
+
+El Área Metropolitana de Buenos Aires (AMBA) abarca a la Ciudad Autónoma, con unos 3 millones de habitantes, y la conurbación de 40 municipios que la rodean, sumando otros 12 millones de habitantes según el Censo de 2010[^nota1].
+
+[^nota1]: "¿Qué es AMBA?", https://www.buenosaires.gob.ar/gobierno/unidades%20de%20proyectos%20especiales%20y%20puerto/que-es-amba 
+
+El AMBA se constituye en una megalópolis donde casi el 40% de todos los habitantes de la Argentina, y encierra muy diversas dinámicas sociales, territoriales, económicas y culturales. 
+
+En atención a ello, y a que el Programa evaluado responde a una iniciativa bajo la jurisdicción del Gobierno de la Ciudad Autónoma de Buenos Aires, el presente trabajo se circunscribirá a los límites de la Ciudad para aquellos temas donde el territorio sea objeto de análisis.
+
+
+## Integración sociocultural
+
+El grado de integración sociocultural relacionado con el uso del Pase Cultural se mide en función de la cantidad, variedad, y dispersión geográfica de las actividades a las que acceden los beneficiarios, contrastadas con el nivel socioeconómico del entorno en que residen. 
+
+La Ciudad Autónoma de Buenos Aires exhibe una clara polarización espacial en la distribución de la población según nivel socioeconómico (NSE)[^notaNSE], con los hogares de menor NSE concentrados en su región Sur, y los de mayores ingresos formando corredores este-oeste en la región Norte, y en menor medida, en la región central.
+
+[^notaNSE]: Véase: _Prevot Schapira, M. F. (2002). Buenos Aires en los años 90: metropolización y desigualdades. EURE (Santiago), 28(85), 31-50._ Disponible en https://scielo.conicyt.cl/scielo.php?script=sci_arttext&pid=S0250-71612002008500003 
+
+```{r}
+n_alumnos <- nrow(alumnos)
+
+alumnos_activos <- filter(alumnos, con_transacciones) %>% 
+    mutate(tipo__domicilio = case_when(
+        tipo__domicilio == "Barrio Social y Villas" ~ "CABA - asentamiento precario",
+        tipo__domicilio == "Fuera de CABA" ~ "Fuera de CABA",
+        TRUE ~ "CABA"),
+        tipo__domicilio = fct_infreq(tipo__domicilio))
+
+n_alumnos_activos <- nrow(alumnos_activos)
+
+pct_activos <- (n_alumnos_activos / n_alumnos) * 100
+
+pct_residencia <- prop.table(table(alumnos_activos$tipo__domicilio))
+
+```
+
+### Distribución etaria de los beneficiarios
+
+Debido a que la edad es un atributo desconocido de una gran porción los beneficiarios -alrededor del 50%- en esta instancia no se realizará una caracterización basada en la edad.
+
+### Distribución geográfica y socioeconómica de los beneficiarios
+
+Entre los `r n_alumnos` inscriptos en el programa Pase Cultural al `r fecha_de_datos`, `r n_alumnos_activos` son considerados beneficiarios activos por haber registrado al menos una transacción en su tarjeta. En su mayoría, los beneficiarios activos viven en barrios formales de la CABA (`r round(pct_residencia["CABA"], 2) * 100` %), mientras que un `r round(pct_residencia["CABA - asentamiento precario"], 2) * 100` % reside en asentamientos precarios, con el `r round(pct_residencia["Fuera de CABA"], 2) * 100` % restante declarando un domicilio fuera de la Ciudad (Figura \@ref(fig:distOrigen)).
+
+```{r distOrigen, fig.height=2.5, fig.cap = "Distribución de participantes según lugar de residencia"}
+alumnos_activos %>%
+    count(tipo__domicilio) %>%
+    mutate(pct = round(n / sum(n), 2)) %>% 
+    ggplot() +
+    geom_col(aes(x = tipo__domicilio, y = pct, fill = tipo__domicilio)) +
+    labs(x = NULL,
+         y = NULL) +
+    scale_fill_brewer(palette = "Dark2") +
+    scale_y_percent(limits = c(0, 1), breaks = c(0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1)) +
+    guides(fill = FALSE) +
+    theme_minimalista 
+```
+
+Para asignar un nivel socioeconómico -abreviado como NSE- a cada beneficiario, estimaremos el del radio censal donde se haya georeferenciado su vivienda. Se usará un índice con variables similares a las identificadas por la Asociación Argentina de Marketing -en concordancia con estándares internacionales- como clave para la inferencia de status social[^nota2]:
+
+[^nota2]: "La estructura social de la Argentina: Evidencias y conjeturas acerca de la estratificación actual", https://repositorio.cepal.org/bitstream/handle/11362/6032/1/S028552_es.pdf
+
+* Nivel educativo
+* Nivel de ocupación laboral
+* Posesiones materiales del hogar
+
+En base a datos del Censo Nacional 2010 podemos extraer las tres variables de interés. El nivel educativo de de cada radio se determina como el porcentaje de población local que alcanzó estudios universitarios o superiores. Para el nivel de ocupación, el porcentaje de población local desempleada. Y como indicador de posesión de bienes materiales se emplea el porcentaje de personas que poseen una computadora en su hogar. 
+
+Las tres variables fueron combinadas en un sólo índice, indicador de NSE, mediante análisis de componentes principales. Esta técnica estadística permite reducir dimensiones (en este caso, de tres indicadores a uno combinado) minimizando la pérdida de información. 
+
+Volcado en el mapa de la Figura \@ref(fig:NSE), el índice evidencia ser adecuado, al señalar una segregación espacial que coincide con los patrones conocidos en la Ciudad de Buenos Aires.
+
+```{r NSE, fig.cap="Nivel socioeconómico por radio censal, CABA"}
+ggplot() +
+    geom_sf(data = radios, aes(fill = decil_NSE), color = NA, alpha = .6) +
+    geom_sf(data = calles, alpha = 0.1, size = .1) +
+    scale_fill_viridis_c(breaks = 1:10, option = "plasma" , na.value="gray90") +
+    guides(fill = guide_legend(override.aes = list(alpha = .6), reverse = TRUE)) +
+    theme_map +
+    labs(caption = "a mayor decil, mayor NSE",
+         fill = "decil")
+```
+
+Si bien hay gran dispersión geográfica en los domicilios de los beneficiarios activos, éstos se concentran en las zonas de la Ciudad de menor NSE (Figura \@ref(fig:domiciliosNSE)).
+
+```{r domiciliosNSE, fig.cap = "NSE de participantes"}
+izquierda <- mapabase +
+    geom_point(data = filter(alumnos_activos, !is.na(decil_NSE)), 
+               aes(x = lng_domicilio, y = lat_domicilio, color = decil_NSE), 
+               alpha = .6) +
+    scale_color_viridis_c(option = "plasma", breaks = 1:10) +
+    guides(color = FALSE) +
+    theme_map +
+    labs(color = "decil")
+
+freq_tx <- transacciones %>% 
+  group_by(Nro_Doc) %>% 
+  summarise(freq = n(),
+            variedad_rubros = length(unique(Rubro))) %>% 
+  left_join(select(alumnos_activos, Nro_Doc = num__docum, decil_NSE, tipo__domicilio)) %>% 
+  filter(!is.na(decil_NSE))
+
+
+derecha <- freq_tx %>% 
+  count(decil_NSE) %>% 
+  ggplot() +
+   geom_col(aes(x = as.factor(decil_NSE), y = n, fill = decil_NSE), alpha = .6) +
+   scale_fill_viridis_c(option = "plasma") +
+   guides(fill = FALSE) +
+   labs(title = " ",
+        subtitle = " ",
+        x = "decil NSE",
+        y = "cantidad",
+        caption = "a mayor decil corresponde mayor NSE") +
+    theme_minimalista
+
+izquierda + derecha
+
+```
+
+Respecto a la cantidad de usos del Pase, en la Figura \@ref(fig:txXusuario) se observa una cierta tendencia al consumo más frecuente -de mayor asiduidad- a medida que aumenta el NSE.
+
+```{r txXusuario, fig.height=2.5, fig.cap = "Cantidad de transacciones por usurio"}
+ggplot() +
+  geom_boxplot(data = freq_tx, aes(x = as.factor(decil_NSE), y = freq), color = "grey90", fill = NA) +
+  geom_jitter(data = freq_tx, aes(x = as.factor(decil_NSE), y = freq, color = decil_NSE)) +
+  geom_smooth(data = freq_tx, aes(x = decil_NSE, y = freq), method = lm, se = FALSE) +
+  scale_color_viridis_c(option = "plasma") +
+  guides(color = FALSE) +
+   labs(caption = "cada punto representa un beneficiario activo",
+        x = "decil NSE",
+        y = "cantidad") +
+  theme_minimalista
+```
+
+```{r}
+modelo <- lm(freq ~ decil_NSE, data = freq_tx)
+
+# p-value ~ 0.13
+#summary(modelo)
+```
+
+Sin embargo, al realizar una regresión lineal no se observa significancia estadística para la tendencia (p-valor ~ 0,13) por lo que los datos no son concluyentes.
+
+
+### Ubicación de la oferta cultural disponible
+
+De forma inevitable, de la ubicación de la oferta dependerá la posible integración territorial de los participantes. En el marco del Programa, sólo serán visitados aquellos sitios donde exista un lugar donde hacer uso del Pase Cultural.
+
+En ese sentido, al proyectar las coordenadas de los sitios de consumo sobre el mapa de NSE de la Ciudad, se observa de inmediato que la oferta se concentra en los barrios de mayor nivel socioeconómico (Figura \@ref(fig:ubicacionOferta)). 
+
+Por tanto, el Programa fomenta la integración territorial invitando a participantes que residen en zonas relegadas de la ciudad a visitar sus centros de consumo. Por otro lado, no promueve integración en sentido inverso: los participante de NSE alto no visitarán zonas periféricas de la ciudad al no existir en ella opciones de consumo.
+
+```{r ubicacionOferta, fig.cap="Ubicación de la oferta cultural del Programa"}
+ggplot() +
+    geom_sf(data = radios, aes(fill = decil_NSE), color = NA, alpha = .6) +
+    geom_point(data = filter(transacciones_geo, !is.na(Rubro)) %>% 
+                               select(Rubro, lon, lat) %>% 
+                               distinct(), 
+               aes(x = lon, y = lat, color = Rubro),
+               size = 4) +
+    scale_fill_viridis_c(option = "plasma", breaks = c(1, 10), 
+                         labels = c("bajo", "alto"), na.value="gray90") +
+    scale_color_brewer(palette = "Dark2") +
+    guides(color = guide_legend(override.aes = list(alpha = .8), reverse = TRUE)) +
+    theme_map +
+    labs(color = "Rubro",
+         fill = "NSE del área")
+```
+
+### Distancia a oferta
+
+Suponiendo que cada evento de consumo implica un viaje desde el hogar, se puede considerar un indicador de proximidad a la la distancia lineal que media entre el origen (domicilio del beneficiario) y el destino (sitio de consumo) para cada transacción registrada en la base. 
+
+```{r diversidadGeoConsumo"}
+# agregamos los domicilios de les alumnes y trazamos las lineas que unen los puntos
+# del lugar de residencia con los de la oferta cultural consumida
+# "lineas de deseo" o desire lines en la parla del transporte
+
+
+# funcion que crea una linea (linestring)
+# a partir de una fila con cuatro coordenadas
+
+st_segment = function(r){st_linestring(t(matrix(unlist(r), 2, 2)))}
+
+# > st_segment(lineas_deseo[1,c(7,8,2,3)])
+# LINESTRING (-58.44075 -34.64887, -58.46238 -34.62933)
+
+lineas_deseo <- transacciones_geo %>% 
+  filter(!is.na(lon)) %>% 
+  transmute(num__docum = Nro_Doc, lng_oferta = lon, lat_oferta = lat) %>% 
+  group_by(num__docum, lng_oferta, lat_oferta) %>% 
+  summarise(freq = n()) %>% 
+  ungroup() %>% 
+  left_join(select(alumnos_activos, num__docum, decil_NSE, 
+                   tipo__domicilio, lng_domicilio, lat_domicilio)) %>% 
+  filter(!is.na(decil_NSE))
+
+
+st_desire_line <- function(lng0, lat0, lng1, lat1) {
+  st_linestring(matrix(c(lng0, lng1, lat0, lat1), 2, 2))
+  }
+
+lineas_deseo <- lineas_deseo %>%
+  transmute(lng0 = lng_domicilio, lat0 = lat_domicilio, lng1 = lng_oferta, lat1 = lat_oferta) %>% 
+  pmap(st_desire_line) %>% 
+  st_as_sfc(crs = 4326) %>% 
+  {cbind(lineas_deseo, geometry = .)} %>% 
+  st_sf()
+```
+
+Expresando la dinámica en un gráfico de dispersión (Figura \@ref(fig:distanciasNSE)), se vislumbra correlación entre NSE y distancia domicilio-oferta cultural. Se observa que los participantes que residen al sur de la ciudad -que coincide con la zona de menor NSE- tienden a residir a mayores distancias de la oferta cultural consumida, en forma considerable en algunos casos.
+
+```{r distanciasNSE, fig.height=2.5, fig.cap = "Distancia entre domicilio y oferta cultural visitada"}
+lineas_deseo <- lineas_deseo %>% 
+  mutate(distancia = as.numeric(st_length(.)))
+
+ggplot() +
+  geom_boxplot(data = lineas_deseo, aes(x = as.factor(decil_NSE), y = distancia), color = "grey90", fill = NA) +
+  geom_jitter(data = lineas_deseo, aes(x = as.factor(decil_NSE), y = distancia, color = decil_NSE)) +
+  geom_smooth(data = lineas_deseo, aes(x = decil_NSE, y = distancia), method = lm, se = FALSE) +
+  scale_color_viridis_c(option = "plasma") +
+  guides(color = FALSE) +
+   labs(caption = "cada punto representa un evento de consumo cultural",
+        x = "decil NSE del participante",
+        y = "distancia al domicilio (m)") +
+  theme_minimalista
+```
+
+```{r}
+modelo_nse_distancia <- lm(data = lineas_deseo, distancia ~ decil_NSE)
+```
+
+Se estimó un modelo estadístico simple (regresión lineal) para determinar la correlación entre el NSE que le corresponde a los beneficiarios y la distancia entre su residencia y la oferta cultural consumida. Los resultados (Cuadro \@ref(tab:regresionNSEdistancia)) indican que la relación es en efecto significativa. El modelo estima una distancia esperada de `r round(modelo_nse_distancia$coefficients["(Intercept)"])` metros entre el sitio de consumo y el domicilio de un beneficiario en el rango más bajo de NSE. Esta distancia se reduce en `r -round(modelo_nse_distancia$coefficients["decil_NSE"])` metros por cada incremento de rango NSE.
+
+
+```{r regresionNSEdistancia}
+options(scipen = 20)
+
+# Print with n digits of precision
+fixed_digits <- function(xs, n = 2) {
+  formatC(xs, digits = n, format = "f")
+}
+
+# Print three digits of a p-value, but use
+# the "< .001" notation on tiny values.
+format_pval <- function(ps, html = FALSE) {
+  tiny <- ifelse(html, "&lt;&nbsp;.001", "< .001")
+  ps_chr <- ps %>% fixed_digits(3) 
+  ps_chr[ps < 0.001] <- tiny
+  ps_chr
+}
+
+# Corregir nombres
+fix_names <- . %>%
+  str_replace(".Intercept.", "constante")
+
+
+format_model_table <- . %>%
+  mutate_at(vars(estimate:statistic), funs(fixed_digits)) %>%
+  mutate(term = fix_names(term),
+         p.value = format_pval(p.value))
+
+
+modelo_nse_distancia %>% 
+  broom::tidy() %>% 
+  format_model_table() %>% 
+  select(term, estimate, p.value) %>% 
+  set_names(c("variable", "efecto", "p-valor")) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Beneficiarios: distancia a oferta cultural consumida vs. NSE") %>% 
+  kable_styling(latex_options = c("striped")) %>% 
+  footnote(general = "Regresión lineal (resumen)",
+           general_title = "")
+```
+
+
+### Estudiantes por escuela vs. barrios donde utilizan el pase
+
+
+
+```{r transaccionesxEscuela, fig.cap="Ubicación de escuelas con beneficiarios activos"}
+# Asignamos a cada escuela su radio censal y NSE
+escuelas_activas <- alumnos_activos %>% 
+  select(nombre__institucion, CUE_institucion:lat_institucion) %>% 
+  distinct() %>% 
+  filter(!is.na(lat_institucion)) 
+
+escuelas_activas <- escuelas_activas %>% 
+  st_as_sf(coords = c("lng_institucion", "lat_institucion"), crs = 4326) %>% 
+  st_join(select(radios, decil_NSE)) %>% 
+  select(CUE_institucion, decil_NSE_escuela = decil_NSE) %>% 
+  {left_join(escuelas_activas, .)}
+
+
+tx_escuelas <- transacciones_geo %>% 
+  transmute(num__docum = Nro_Doc) %>% 
+  left_join(select(alumnos_activos, 
+                   num__docum, CUE_institucion)) %>% 
+  left_join(select(escuelas_activas, 
+                   nombre__institucion, nivel_educativo_institucion, CUE_institucion, lng_institucion, lat_institucion, decil_NSE_escuela)) %>% 
+  group_by(CUE_institucion, nombre__institucion, nivel_educativo_institucion,
+           lng_institucion, lat_institucion, decil_NSE_escuela) %>% 
+  summarise(freq = n()) %>% 
+  ungroup()
+
+
+plot_tx_escuelas <- ggplot() +
+    geom_sf(data = radios, aes(fill = decil_NSE), color = NA, alpha = .6) +
+    geom_point(data = tx_escuelas, 
+               aes(x = lng_institucion, y = lat_institucion, size = freq), shape = 1) +
+    scale_fill_viridis_c(option = "plasma", breaks = c(1, 10), 
+                         labels = c("bajo", "alto"), na.value="gray90") +
+    scale_color_brewer(palette = "Dark2") +
+    guides(color = guide_legend(override.aes = list(alpha = .8), reverse = TRUE)) +
+    theme_map +
+    labs(size = "transacciones",
+         fill = "NSE del área") +
+  theme(legend.background=element_blank())
+
+
+alumnos_activos_escuelas <- alumnos_activos %>% 
+  group_by(CUE_institucion, nombre__institucion, nivel_educativo_institucion,
+           lng_institucion, lat_institucion) %>% 
+  summarise(alumnos_activos = n()) %>% 
+  ungroup()
+
+
+
+plot_activos_escuelas <- ggplot() +
+    geom_sf(data = radios, aes(fill = decil_NSE), color = NA, alpha = .6) +
+    geom_point(data = alumnos_activos_escuelas, 
+               aes(x = lng_institucion, y = lat_institucion, size = alumnos_activos), shape = 1) +
+    scale_fill_viridis_c(option = "plasma", breaks = c(1, 10), 
+                         labels = c("bajo", "alto"), na.value="gray90") +
+    scale_color_brewer(palette = "Dark2") +
+    guides(color = guide_legend(override.aes = list(alpha = .8), reverse = TRUE)) +
+  theme(legend.background = element_blank()) + 
+  theme_map +
+    labs(size = "alumnos activos en escuela",
+         fill = "NSE del área") 
+
+
+# Por ahora solo mostrar TX
+plot_tx_escuelas
+
+```
+
+
+Se analizó también la cantidad de transacciones de los beneficiarios agregados a nivel escuela, en caso de que exista un efecto producido por la ubicación de los establecimiento educativos a los que asiste cada alumno. Es decir, podría darse la situación de que los alumnos que asisten a escuelas ubicadas en zonas de mayor NSE tienden a utilizar más el pase, sin importar la zona de sus domicilios. 
+
+Pero aún cuando las escuelas que representan la mayor cantidad de transacciones se concentran en los corredores más desarrollados de la ciudad, no se encuentra correlación entre el nivel socioeconómico de la zona circundante a las escuelas y el uso del pase entre sus alumnos. Es decir, el nivel de uso en las escuelas en zonas de menor nivel adquisitivo es comparable al de las demás.
+
+```{r}
+# no correlation
+#lm(data = tx_escuelas, freq ~ decil_NSE_escuela) %>% summary()
+```
+
+
+Se observa que los participantes que residen al sur de la ciudad -que coincide con la zona de menor NSE- tienden a viajar mayores distancias, en forma considerable en algunos casos.
+
+Donde si se encuentra una diferencia estadísticamente significativa es en las distancias que median entre las escuelas y la oferta consumida por sus alumnos. Se observan un incremento de las distancias entre escuelas y oferta consumida, para aquellas escuelas ubicadas en zonas de bajo NSE.
+
+```{r distanciasNSEescuelas, fig.height=2.5, fig.cap = "Distancia entre escuelas y oferta cultural visitada"}
+
+lineas_deseo_escuelas <- transacciones_geo %>% 
+  filter(!is.na(lon)) %>% 
+  transmute(num__docum = Nro_Doc, lng_oferta = lon, lat_oferta = lat) %>% 
+  left_join(select(alumnos_activos, 
+                   num__docum, CUE_institucion)) %>% 
+  left_join(select(escuelas_activas, 
+                   nombre__institucion, nivel_educativo_institucion, CUE_institucion, lng_institucion, lat_institucion, decil_NSE_escuela)) %>% 
+  group_by(CUE_institucion, lng_oferta, lat_oferta) %>% 
+  summarise(freq = n(),
+            nombre__institucion = last(nombre__institucion),
+            nivel_educativo_institucion = last(nivel_educativo_institucion),
+            decil_NSE_escuela = last(decil_NSE_escuela),
+            lng_institucion = last(lng_institucion),
+            lat_institucion = last(lat_institucion)) %>% 
+  ungroup()  %>% 
+  filter(!is.na(decil_NSE_escuela))
+
+lineas_deseo_escuelas <- lineas_deseo_escuelas %>%
+  transmute(lng0 = lng_institucion, lat0 = lat_institucion, lng1 = lng_oferta, lat1 = lat_oferta) %>% 
+  pmap(st_desire_line) %>% 
+  st_as_sfc(crs = 4326) %>% 
+  {cbind(lineas_deseo_escuelas, geometry = .)} %>% 
+  st_sf()
+
+lineas_deseo_escuelas <- lineas_deseo_escuelas %>% 
+  mutate(distancia = as.numeric(st_length(.)))
+
+ggplot() +
+  geom_boxplot(data = lineas_deseo_escuelas, 
+               aes(x = as.factor(decil_NSE_escuela), y = distancia), 
+               color = "grey90", fill = NA) +
+  geom_jitter(data = lineas_deseo_escuelas, 
+              aes(x = as.factor(decil_NSE_escuela), 
+                  y = distancia, color = decil_NSE_escuela)) +
+  geom_smooth(data = lineas_deseo_escuelas, 
+              aes(x = decil_NSE_escuela, y = distancia), 
+              method = lm, se = FALSE) +
+  scale_color_viridis_c(option = "plasma") +
+  guides(color = FALSE) +
+   labs(caption = "cada punto representa un evento de consumo cultural",
+        x = "decil NSE del participante",
+        y = "distancia al domicilio (m)") +
+  theme_minimalista
+```
+
+```{r}
+modelo_nse_distancia_escuelas <- lm(data = lineas_deseo_escuelas, distancia ~ decil_NSE_escuela)
+```
+
+Se estimó un modelo estadístico simple (regresión lineal) para determinar la correlación entre el NSE que le corresponde a las escuelas y la distancia entre su ubicación y la oferta cultural consumida por sus alumnos. Los resultados (Cuadro \@ref(tab:regresionNSEdistanciaEscuelas)) indican que la relación es en efecto significativa. El modelo estima una distancia esperada de `r round(modelo_nse_distancia_escuelas$coefficients["(Intercept)"])` metros entre el sitio de consumo y el de las escuelas en el rango más bajo de NSE. Esta distancia se reduce en `r -round(modelo_nse_distancia_escuelas$coefficients["decil_NSE_escuela"])` metros por cada incremento de rango NSE.
+
+
+```{r regresionNSEdistanciaEscuelas}
+
+modelo_nse_distancia_escuelas %>% 
+  broom::tidy() %>% 
+  format_model_table() %>% 
+  select(term, estimate, p.value) %>% 
+  set_names(c("variable", "efecto", "p-valor")) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Escuelas: distancia a oferta cultural consumida vs. NSE") %>% 
+  kable_styling(latex_options = c("striped")) %>% 
+  footnote(general = "Regresión lineal (resumen)",
+           general_title = "")
+```
+
+
+
+## Accesibilidad
+
+Como insumo para el análisis de accesibilidad, se ha realizado la partición de la superficie de la CABA en 200 celdas de similar superficie. Las celdas abarcan unas cinco cuadras desde sus centroides hasta sus vértices, una distancia similar al promedio que los pasajeros de Buenos Aires caminan al viajar en transporte público a su trabajo (4,5 cuadras) o reuniones sociales (4,8 cuadras) según datos de INTRUPUBA[^nota3].
+
+[^nota3]: La Investigación de Transporte Urbano de Buenos Aires comisionada por la Secretaría de Transporte de la Nación, realizada entre 2006 y 2007. El estudio evaluó viajes realizados en todos los medios de transporte público masivo (ferrocarril, subterráneo, premetro y colectivo)
+
+Realizando consultas automatizadas al sistema de ruteo provisto por Google Maps se estimaron las rutas más cortas, en transporte público, entre los centroides de cada pareja de celdas. De este modo se compiló una matriz origen-destino con las 40.000 posibles rutas ($200^2$). Ejemplos de las rutas en transporte público identificadas desde celdas con alta y baja conectividad respecto al resto de la ciudad pueden verse en la Figura \@ref(fig:celdasCABA).
+
+```{r include=FALSE}
+celdas_caba <- st_read("../entregables/data auxiliar/transporte_publico/caba_particionada_200_celdas.geojson", 
+                  quiet = TRUE)
+
+```
+
+```{r eval=FALSE}
+
+# Como el shapefile de rutas es pesado, corremos esto una vez, guardamos el resultado y lo ploteamos en el siguiente chunk
+
+# rutas_caba <- st_read("../../../../Datasets/caba/rutas_transporte_publico.geojson", quiet = TRUE)
+# 
+# celdasur <- ggplot() +
+#     geom_sf(data = celdas_caba, fill = NA, color = "gray85") +
+#     geom_sf(data = filter(celdas_caba, id == 134), fill = NA) +
+#     geom_sf(data = filter(rutas_caba, O == 134), 
+#             color = alpha("#d94801", 0.4)) +
+#   geom_sf(data = st_centroid(filter(celdas_caba, id == 134))) +
+#   theme_map
+# 
+# celdacentro <- ggplot() +
+#     geom_sf(data = celdas_caba, fill = NA, color = "gray85") +
+#     geom_sf(data = filter(celdas_caba, id == 17), fill = NA) +
+#     geom_sf(data = filter(rutas_caba, O == 17), 
+#             color = alpha("#d94801", 0.4)) +
+#   geom_sf(data = st_centroid(filter(celdas_caba, id == 17))) +
+#   theme_map
+# 
+# 
+# plot_rutas <- celdacentro + celdasur
+# 
+# saveRDS(plot_rutas, "plot_rutas.Rds")
+# 
+# rm(rutas_caba)
+
+```
+
+```{r celdasCABA, fig.cap = "Celdas de la matriz origen-destino en transporte público. Rutas desde una celda en el centro urbano (izq.) y una celda en la periferia (der.)", cache = TRUE}
+
+readRDS("plot_rutas.Rds")
+```
+
+```{r}
+# asignar a cada transaccion sus celdas 
+transacciones_geo <- transacciones_geo %>% 
+  filter(!is.na(lon)) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326, remove = FALSE) %>% 
+  st_join(celdas_caba) %>% 
+  rename(celda = id) %>% 
+  st_set_geometry(NULL) 
+
+# y a cada beneficiario y a su escuela
+alumnos_activos <- alumnos_activos %>% 
+  as_tibble() %>% 
+  filter(!is.na(lng_domicilio)) %>% 
+  st_as_sf(coords = c("lng_domicilio", "lat_domicilio"), crs = 4326, remove = FALSE) %>%
+  st_join(celdas_caba) %>% 
+  rename(celda_domicilio = id) %>% 
+  st_set_geometry(NULL) %>% 
+  {left_join(alumnos_activos, .)} %>%   
+  filter(!is.na(lng_institucion)) %>% # Ahora a identificar celdas de la escuela
+  st_as_sf(coords = c("lng_institucion", "lat_institucion"), crs = 4326, remove = FALSE) %>%
+  st_join(celdas_caba) %>% 
+  rename(celda_institucion = id) %>% 
+  st_set_geometry(NULL) %>% 
+  {left_join(alumnos_activos, .)}
+
+
+
+# Ahora calculamos el tiempo de viaje entre domiclio y oferta, y entre escuela y oferta, para cada transacción
+
+distancias <- read_csv("../entregables/data auxiliar/transporte_publico/rutas_transporte_publico_tabla.csv") %>% 
+  # Los valores NA signifcan "inruteable". Les asignamos un codigo para filtrarlos luego
+  mutate(distance_m = ifelse(is.na(distance_m), -99, distance_m),
+         duration_s = ifelse(is.na(duration_s), -99, duration_s)) %>% 
+  # Completamos la matriz de distancias apra los casos en que O y D son iguales
+  complete(O, D, fill = list(distance_m = 0, duration_s = 0)) %>% 
+  # eliminamos pares inruteables
+  filter(distance_m != -99)
+
+transacciones_geo <- transacciones_geo %>% 
+  left_join(select(alumnos_activos, num__docum, sexo, decil_NSE, 
+                   CUE_institucion, celda_domicilio, celda_institucion),
+            by = c(Nro_Doc = "num__docum")) %>% 
+  left_join(distancias, by = c("celda_domicilio" = "O", "celda" = "D")) %>% 
+  rename(decil_NSE_alumo = decil_NSE, 
+         distancia_domicilio = distance_m, 
+         tiempo_domicilio = duration_s) %>% 
+  left_join(distancias, by = c("celda_institucion" = "O", "celda" = "D")) %>% 
+  rename(distancia_institucion = distance_m, tiempo_institucion = duration_s)
+         
+tiempos_de_viaje_hogares <- transacciones_geo %>% 
+  filter(!is.na(Rubro)) %>% 
+  mutate(tiempo_domicilio = tiempo_domicilio / 60,
+         tiempo_institucion = tiempo_institucion / 60) %>%
+  group_by(Rubro) %>% 
+  summarise("n" = n(),
+            "tiempo de viaje promedio" = round(mean(tiempo_domicilio, na.rm = TRUE)),
+            "tiempo de viaje máximo" = round(max(tiempo_domicilio, na.rm = TRUE))) %>% 
+  arrange(`tiempo de viaje promedio`)
+
+```
+
+
+Utilizando la dirección de comercios y centros culturales declarada en las planillas de inscripción al programa, se obtuvieron las coordenadas geográficas de los puntos donde los beneficiarios utilizaron utilizar su pase. En el caso de proveedores que disponen de múltiples sucursales, fue imposible determinar la ubicación exacta, ya que los registros de transacciones indican el nombre de la empresa pero no un sitio de venta en particular. Es por ello que las transacciones georeferenciadas con precisión -aquellas para las que se conoce el punto exacto donde ocurrió el consumo- son un `r round(nrow(transacciones_geo) / nrow(transacciones), 2) * 100`% del total.
+
+En base a las coordenadas, se asignó la celda en la que ocurrieron transacciones, y lo mismo se hizo con la posición del hogar de cada beneficiario, y de las escuelas. De tal modo fue posible estimar el tiempo de viaje en transporte público requerido para llegar hasta el punto de oferta cultural, útil como medida de facilidad de acceso.
+
+
+Pudo determinarse la pareja domicilio/sitio de oferta -y por lo tanto, una estimación de tiempo de viaje- para `r sum(tiempos_de_viaje_hogares$n)` transacciones. El promedio general de tiempo de viaje en transporte público es de `r round(weighted.mean(tiempos_de_viaje_hogares$"tiempo de viaje promedio", tiempos_de_viaje_hogares$n))` minutos. El Cuadro \@ref(tab:tiemposDeViajeHogares) muestra tiempos de viaje, promedio y máximo, por rubro cultural. 
+
+Los cines reciben al público más cercano, mientas que museos y librerías artísticas requieren viajes más largos. Esto podría deberse tanto a cercanía de la oferta, por ejemplo, por la amplia cobertura geogŕafica de los cines, que contrasta con la concentración en el área céntrica de las librerías artística. Pero también podría haber haber un efecto relacionado con la variabilidad de propuestas en diferentes rubros: es posible que los beneficiarios estén dispuestos a viajar a un centro cultural o museo lejano, aún teniendo oferta de ese tipo cercana, debido a que las propuestas podrían ser muy distintas. En cambio, la oferta de los cines es en cierto modo fungible; si los cines de distintas cadenas ofrecen la misma cartelera, no habría incentivo para viajar a una sala lejana teniendo otra cerca. 
+
+```{r tiemposDeViajeHogares}
+
+tiempos_de_viaje_hogares %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Tiempo de viaje desde hogares a oferta cultural") %>% 
+  kable_styling(latex_options = c("striped")) %>% 
+  footnote(general = "Tiempo expresado en minutos, en transporte público",
+           general_title = "Nota: ")
+```
+
+
+```{r eval=FALSE}
+
+# POr ahora no lo usamos
+# transacciones_geo %>% 
+#   mutate(tiempo_domicilio = tiempo_domicilio / 60,
+#          tiempo_institucion = tiempo_institucion / 60) %>%
+#   group_by(Rubro) %>% 
+#   mutate(media_tiempo_domicilio = mean(tiempo_domicilio),
+#          media_tiempo_institucion = mean(tiempo_institucion)) %>% 
+# ggplot() +
+#   geom_histogram(aes(x = tiempo_domicilio, fill = Rubro)) +
+#   facet_wrap(~Rubro, scales = "free_y") +
+#   theme_minimalista +
+#   scale_y_continuous(breaks = function(x) unique(floor(pretty(seq(0, (max(x) + 1) * 1.1))))) +
+#   guides(fill = FALSE) +
+#   labs(x = "tiempo de viaje (minutos)",
+#        y = "cantidad de viajes") +
+#   scale_fill_brewer(palette = "Dark2")
+
+```
+
+
+## Patrones relacionados a calendario y factores climáticos
+
+```{r}
+# Funcion para calendar plots
+
+calendarHeatmap <- function(dates, values, partialyear = FALSE, title = "", subtitle = "", legendtitle = ""){
+    
+    # Parameter checks
+    if(missing(dates)){
+        stop("Need to specify a dates vector.")
+    }
+    if(missing(values)){
+        stop("Need to specify a values vector.")
+    }
+    if(!is.Date(dates)){
+        stop("dates vector need to be in Date format.")
+    }
+    if(length(dates) != length(values)){
+        stop("dates and values need to have the same length.")
+    }
+    
+    
+    # load required packages
+    require(ggplot2)
+    
+    my_theme <- function() {
+        
+        # Colors
+        color.background = "white"
+        color.text = "#22211d"
+        
+        # Begin construction of chart
+        theme_bw(base_size=15) +
+            
+            # Format background colors
+            theme(panel.background = element_rect(fill=color.background, color=color.background)) +
+            theme(plot.background  = element_rect(fill=color.background, color=color.background)) +
+            theme(panel.border     = element_rect(color=color.background)) +
+            theme(strip.background = element_rect(fill=color.background, color=color.background)) +
+            
+            # Format the grid
+            theme(panel.grid.major = element_blank()) +
+            theme(panel.grid.minor = element_blank()) +
+            theme(axis.ticks       = element_blank()) +
+            
+            # Format the legend
+            theme(legend.position = "bottom") +
+            theme(legend.text = element_text(size = 8, color = color.text)) +
+            theme(legend.title = element_text(size = 10, face = "bold", color = color.text)) +
+            
+            # Format title and axis labels
+            theme(plot.title       = element_text(color=color.text, size=20, face = "bold")) +
+            theme(axis.text.x      = element_text(size=12, color="black")) +
+            theme(axis.text.y      = element_text(size=12, color="black")) +
+            theme(axis.title.x     = element_text(size=14, color="black", face = "bold")) +
+            theme(axis.title.y     = element_text(size=14, color="black", vjust=1.25)) +
+            theme(axis.text.x      = element_text(size=10, hjust = 0, color = color.text)) +
+            theme(axis.text.y      = element_text(size=10, color = color.text)) +
+            theme(strip.text       = element_text(face = "bold")) + 
+            
+            # Plot margins
+            theme(plot.margin = unit(c(0.35, 0.2, 0.3, 0.35), "cm"))
+    }
+    
+    # create empty calendar
+    min.date <- as.Date(paste(format(min(dates), "%Y"),"-1-1",sep = ""))
+    max.date <- as.Date(paste(format(max(dates), "%Y"),"-12-31", sep = ""))
+    
+    df <- data.frame(date = seq(min.date, max.date, by="days"), value = NA)
+    
+    # fill in values
+    df$value[match(dates, df$date)] <- values
+    
+    df$year  <-  as.factor(format(df$date, "%Y"))
+    df$month <- as.numeric(format(df$date, "%m"))
+    df$doy   <- as.numeric(format(df$date, "%j"))
+    #df$dow  <- as.numeric(format(df$date, "%u"))
+    #df$woy  <- as.numeric(format(df$date, "%W"))
+    df$dow <- as.numeric(format(df$date, "%w"))
+    df$woy <- as.numeric(format(df$date, "%U")) + 1
+    
+    df$dowmapped <- ordered(df$dow, levels = 6:0)
+    levels(df$dowmapped) <- rev(c("domingo","lunes","martes","miércoles","jueves","viernes","sábado"))
+    
+    get_lims <- function(dates) {
+        if (partialyear) {
+            c(min(week(dates)) -1 , max(week(dates)) + 1)
+        }
+        else {
+            c(2.5, 53)
+        }
+    }
+    
+    get_breaks <- function(dates) {
+        if (partialyear) {
+            (length(unique(week(dates)))+1)/length(unique(month(dates)))*(1:length(unique(month(dates))))
+        }
+        else {
+            breaks = 53/12*(1:12)-1.5
+        }
+    }
+    
+    get_labels <- function(dates) {
+        if (partialyear) {
+            c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")[unique(month(dates))]
+        }
+        else {
+            c("Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic")
+        }
+    }
+    
+    g <- ggplot(df, aes(woy, dowmapped, fill = value)) + 
+        geom_tile(colour = "darkgrey") + 
+        facet_wrap(~year, ncol = 1) + # Facet for years
+        coord_equal(xlim = get_lims(dates)) + # square tiles
+        scale_x_continuous(breaks = get_breaks(dates), 
+                           labels = get_labels(dates)) + 
+        my_theme() +
+        scale_fill_gradientn(colours = rev(c("#D61818", "#FFAE63", "#FFFFBD", "#B5E384")), na.value = "white",
+                             name = legendtitle,
+                             guide = guide_colorbar(
+                                 direction = "horizontal",
+                                 barheight = unit(2, units = "mm"),
+                                 barwidth = unit(75, units = "mm"),
+                                 title.position = 'top',
+                                 title.hjust = 0.5
+                             )) +
+        labs(x = NULL, 
+             y = NULL, 
+             title = title, 
+             subtitle = subtitle)
+    
+    my.lines<-data.frame(x=numeric(), 
+                         y=numeric(), 
+                         xend=numeric(), 
+                         yend=numeric(), 
+                         year=character())
+    
+    for(years in levels(df$year)){
+        df.subset <- df[df$year == years,]
+        
+        y.start <- df.subset$dow[1]
+        x.start <- df.subset$woy[1]
+        
+        x.top.left <- ifelse(y.start == 0, x.start - 0.5, x.start + 0.5)
+        y.top.left <- 7.5
+        x.top.right <- df.subset$woy[nrow(df.subset)] + 0.5
+        y.top.right <- 7.5
+        
+        x.mid.left01 <- x.start - 0.5
+        y.mid.left01 <- 7.5 - y.start
+        x.mid.left02 <- x.start + 0.5
+        y.mid.left02 <- 7.5 - y.start
+        
+        x.bottom.left <- x.start - 0.5
+        y.bottom.left <- 0.5
+        x.bottom.right <- ifelse(y.start == 6, df.subset$woy[nrow(df.subset)] + 0.5, df.subset$woy[nrow(df.subset)] - 0.5)
+        y.bottom.right <- 0.5
+        
+        my.lines<-rbind(my.lines,
+                        data.frame(x    = c(x.top.left, x.bottom.left, x.mid.left01, x.top.left, x.bottom.left), 
+                                   y    = c(y.top.left, y.bottom.left, y.mid.left01, y.top.left, y.bottom.left),
+                                   xend = c(x.top.right, x.bottom.right, x.mid.left02, x.mid.left02, x.mid.left01), 
+                                   yend = c(y.top.right, y.bottom.right, y.mid.left02, y.mid.left02, y.mid.left01), 
+                                   year = years))
+        
+        # lines to separate months
+        for (j in 1:12)  {
+            df.subset.month <- max(df.subset$doy[df.subset$month == j])
+            x.month <- df.subset$woy[df.subset.month]
+            y.month <- df.subset$dow[df.subset.month]
+            
+            x.top.mid <- x.month + 0.5
+            y.top.mid <- 7.5
+            
+            x.mid.mid01 <- x.month - 0.5
+            y.mid.mid01 <- 7.5 - y.month - 1
+            x.mid.mid02 <- x.month + 0.5
+            y.mid.mid02 <- 7.5 - y.month - 1
+            
+            x.bottom.mid <- ifelse(y.month == 6, x.month + 0.5, x.month - 0.5)
+            y.bottom.mid <- 0.5
+            
+            my.lines<-rbind(my.lines,
+                            data.frame(x    = c(x.top.mid, x.mid.mid01, x.mid.mid01), 
+                                       y    = c(y.top.mid, y.mid.mid01, y.mid.mid01),
+                                       xend = c(x.mid.mid02, x.mid.mid02, x.bottom.mid), 
+                                       yend = c(y.mid.mid02, y.mid.mid02, y.bottom.mid), 
+                                       year = years))
+            
+        }
+        
+    }
+    
+    # add lines
+    g <- g + geom_segment(data=my.lines, aes(x,y,xend=xend, yend=yend), lineend = "square", color = "black", inherit.aes=FALSE)
+    
+    return(g)
+}
+
+```
+
+### Participación a lo largo del tiempo
+
+El conteo de transacciones por fecha de calendario muestra un crecimiento sostenido en la cantidad diaria de transacciones, sobre todo a partir de abril. Dado que el ciclo lectivo 2019 de la Ciudad de Buenos Aires se inició el 6 de marzo, el salto en el nivel de actividad de los beneficiarios ocurre un mes después del inicio de clases (Figura \@ref(fig:calendarPlotTransacciones)). El mayor nivel de actividad se registra de jueves a sábado, con pico en los viernes.
+
+
+```{r calendarPlotTransacciones, fig.cap = "Transacciones de Pase Cultural por fecha"}
+transacciones %>% 
+  group_by(Fecha) %>% 
+  summarise(total = n()) %>% 
+  na.omit() %>% 
+  {calendarHeatmap(.$Fecha, .$total)}
+```
+
+Al analizar la evolución de la demanda por distintos rubros culturales -Figura \@ref(fig:transaccionesFechaRubro)-, se observa que la mayor parte del volumen corresponde a visitas al cine y compras en librerías.
+
+```{r transaccionesFechaRubro, fig.cap="Evolución de demanda por rubro"}
+transacciones %>% 
+  group_by(semana = floor_date(Fecha, "week"), Rubro) %>% 
+  summarise(total = n()) %>% 
+  na.omit() %>% 
+  ggplot() +
+  geom_col(aes(x = semana, y = total, fill = fct_reorder(Rubro, total))) +
+#  geom_col(aes(x = semana, y = total, fill = fct_reorder(Rubro, total))) +
+  scale_fill_brewer(palette = "Dark2") +
+  scale_x_date(date_labels = "%d %b", date_breaks = "1 week") +
+  labs(fill = "Rubro", y = "transacciones") +
+  theme_minimalista +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+# transacciones %>% 
+#   group_by(semana = floor_date(Fecha, "week"), Rubro) %>% 
+#   summarise(total = n()) %>% 
+#   na.omit() %>% 
+#   ggplot() +
+#   geom_path(aes(x = semana, 
+#                 y = total, 
+#                 color = fct_reorder(Rubro, total), 
+#                 group = fct_reorder(Rubro, total))) +
+#   scale_color_brewer(palette = "Dark2") +
+#   scale_x_date(date_labels = "%d %b", date_breaks = "1 week") +
+#   labs(color = "Rubro", y = "transacciones") +
+#   theme_minimalista +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   guides(color = guide_legend(reverse = TRUE)) 
+```
+
+
+### Efecto de condiciones climáticas sobre la demanda
+
+Se recopiló información hora a hora sobre condiciones climáticas en la Ciudad de Buenos aires durante el período analizado. Los datos disponibles incluyen temperatura, sensación térmica, precipitaciones, presión, intensidad del viento, etc.
+
+```{r resumenClima, fig.asp = .62, fig.cap="temperatura y precipitaciones durante el período analizado"}
+climabaires <- read.csv("../entregables/data auxiliar/clima/clima_baires.csv") %>% 
+  mutate(time_gmt = ymd_hms(time_gmt) - hours(3)) %>%  # offset de la hora en BA vs GMT 
+  filter(between(as.Date(floor_date(time_gmt, "day")), 
+                 min(transacciones$Fecha, na.rm = TRUE), 
+                 max(transacciones$Fecha, na.rm = TRUE)))    
+
+
+temp_min_max <- climabaires %>% 
+   group_by(Fecha = as.Date(floor_date(time_gmt, "day"))) %>% 
+   summarise(min = min(apparentTemperature),
+             max = max(apparentTemperature)) %>%
+   gather(key = "tipo", value = "temperatura", -Fecha) %>% 
+   ggplot(aes(x = Fecha, y = temperatura, color = tipo)) +
+   geom_point() +
+   scale_colour_brewer(palette="Set1") +
+   geom_smooth() +
+   theme_minimalista +
+   scale_x_date(date_breaks = "1 month", date_labels = "%b") +
+  labs(x = "sensación térmica (°C)", y = NULL)
+  
+precipitaciones <- climabaires %>% 
+   group_by(Fecha = as.Date(floor_date(time_gmt, "day"))) %>% 
+   summarise(precipitaciones = sum(precipIntensity, na.rm = TRUE)) %>% 
+   ggplot(aes(x = Fecha, y = precipitaciones)) +
+   geom_col(color = "dodgerblue3", fill = "dodgerblue1") +
+   theme_minimalista +
+   scale_x_date(date_breaks = "1 month", date_labels = "%b") +
+  labs(x = "precipitaciones diarias (mm)", y = NULL)
+
+temp_min_max + precipitaciones
+
+```
+
+Por su potencial efecto supresor sobre la demanda, se extrajeron métricas representando intensidad máxima de la lluvia, cantidad de horas de clima lluvioso, y temperatura máxima, para cada día y durante el rango horario de actividad de sitios de oferta cultural (9 a 22 horas). Como variable de control, se agregó también la caridad de días transcurridos desde la primera transacción registrada, con el fin de tomar en consideración el efecto del paso del tiempo.
+
+Se realizó un modelo de regresión, con la cantidad diaria de transacciones como variable a predecir, y los factores climáticos mencionados como predictores, junto  la variable de tiempo transcurrido. Los resultados, resumidos en el Cuadro \@ref(tab:regresionClimaTransacciones), indican que para las variables climáticas consideradas no se haya un efecto estadísticamente significativo. Aún así, el signo de los efectos son los esperables para temperatura y cantidad de horas con lluvia, en ambos casos reduciendo la cantidad de transacciones respecto a la esperable. La intensidad máxima de las precipitaciones, por otro lado, exhibe un efecto incremental, lo que hubiera ameritado una explicación en caso de que la relación fuera significativa para la muestra disponible. Por último, cabe mencionarse que el paso del tiempo está asociado con alta significancia al incremento en la cantidad de transacciones diarias efectuadas por los beneficiarios. Puede especularse que, de contar con los datos de una futura instancia en la que el Programa ha alcanzado madurez y números estables, puedan discernirse mejor los efectos del clima sobre la demanda.
+
+```{r regresionClimaTransacciones}
+# Identificar dias con lluvia o con pico de calor
+clima_vs_transacciones <- climabaires %>% 
+  filter(between(hour(time_gmt), 9, 22)) %>% # tomamos el rango de 10 a 22 horas
+  group_by(Fecha = as.character(floor_date(time_gmt, "day"))) %>%
+  mutate(lluvia = precipIntensity > 1.5) %>% 
+  summarise(horas_con_lluvia = sum(lluvia),
+            max_precipitaciones = max(precipIntensity, na.rm = TRUE),
+            max_temperatura = max(apparentTemperature, na.rm = TRUE))
+
+# Unir a conteo de transacciones
+
+clima_vs_transacciones <- transacciones %>% 
+  filter(!is.na(Fecha)) %>% 
+  group_by(Fecha = as.character(Fecha)) %>% 
+  summarise(transacciones = n()) %>% 
+  left_join(clima_vs_transacciones) %>% 
+  mutate(dias_transcurridos = row_number()) %>% 
+  select(-Fecha)
+
+modelo_clima_vs_transacciones <- lm(data = clima_vs_transacciones, transacciones ~ .)
+
+modelo_clima_vs_transacciones %>% 
+  broom::tidy() %>% 
+  format_model_table() %>% 
+  select(term, estimate, p.value) %>% 
+  set_names(c("variable", "efecto", "p-valor")) %>% 
+  mutate(variable = c("constante", "horas con lluvia", "intensidad de precipitaciones", 
+                      "temperatura máxima", 
+"dias transcurridos")) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Efecto de condiciones climáticas sobre demanda") %>% 
+  kable_styling(latex_options = c("striped")) %>% 
+  footnote(general = "Regresión lineal (resumen)",
+           general_title = "")
+
+```
+
+## Resultados de la Encuesta Pase Cultural
+
+```{r}
+respuestas <- read_csv("../Typeform/respuestas_limpias.csv") %>% 
+    mutate(escuela_en_CABA = case_when(
+        escuela_en_CABA == "No, voy a escuela privada" ~ "Privada",
+        escuela_en_CABA %in% c("No, terminé o voy a la escuela en otro lado",
+                               "No, voy a la escuela en otro lado") ~ "No estudia en CABA",
+        TRUE ~ escuela_en_CABA
+    ))
+
+colores_respuestas <- c("Museo / Galería" = "#1b9e77",
+                          "Música en vivo" = "#d95f02",
+                          "Danza / Teatro" = "#e7298a",
+                          "Cine" = "#a6761d")
+
+```
+
+
+A partir de `r nrow(respuestas)` encuestas válidas disponibles (es decir, aquellas respondidas por jóvenes entre 14 y 18 años), se cuantificaron factores de decisión según se detalla a continuación.
+
+
+```{r analisisEncuesta}
+salidas_top <- respuestas %>% 
+    group_by(opcion_salidas_1) %>% 
+    summarise(n = n()) %>% 
+    mutate(pct = round(n/sum(n), 2) * 100)
+
+salidas_top_genero <- respuestas %>% 
+    group_by(genero, opcion_salidas_1) %>% 
+    summarise(n = n()) %>% 
+    mutate(pct = n/sum(n))
+
+aluvial <- respuestas %>% 
+    mutate(id = 1:nrow(.)) %>% 
+    select(id, primera = opcion_cultural_1, 
+           segunda = opcion_cultural_2, 
+           tercera = opcion_cultural_3, 
+           cuarta  = opcion_cultural_4) %>% 
+    gather(key = orden, value = opcion, -id) %>% 
+    mutate(orden = fct_inorder(orden)) 
+
+razones <- respuestas %>% 
+  select(opcion_cultural_4,
+         no_me_gusta_o_no_me_divierte:no_tengo_quien_me_acompanie) %>% 
+  rename("no me gusta / no me divierte" = no_me_gusta_o_no_me_divierte,
+         "es caro" = es_caro,
+         "no la conozco bien / no se dónde se hace" = no_conozco_bien_no_se_donde_se_hace,
+         "me queda lejos" = me_queda_lejos,
+         "no tengo quien me acompañe" = no_tengo_quien_me_acompanie) %>% 
+  gather(razon, elegida, -opcion_cultural_4) %>%
+  filter(elegida) %>% 
+  group_by(opcion_cultural_4, razon) %>% 
+  summarise(freq = n())
+
+```
+
+
+### Preferencia para el empleo del tiempo libre. "Salir" a consumir oferta cultural, vs. actividad deportiva, vs. lectura.
+
+Ante la pregunta _¿De éstas actividades, cuál es la que más te atrae para tu tiempo libre?_ los respondentes debieron categorizar, en orden de preferencia, las opciones:
+
+- Deporte / actividad física
+- Salir (cine, música, teatro, museos)
+- Lectura (libros y cómics)
+
+En el agregado, un `r salidas_top %>% filter(opcion_salidas_1 == "Salir (cine, música, teatro, museos)") %>% pull(pct)`% eligió "Salir (cine, música, teatro, museos)" como primera en orden de preferencia, mientras que "Deporte / actividad física" fue la primera opción para un `r salidas_top %>% filter(opcion_salidas_1 == "Deporte / actividad física") %>% pull(pct)`%, con el `r salidas_top %>% filter(opcion_salidas_1 == "Lectura (libros y comics)") %>% pull(pct)`% restante priorizando la lectura de libros y cómics.
+
+Es interesante resaltar que, cuando se separan las respuestas por género, se encuentran claras diferencias: para los varones la principal preferencia es por _Deporte / Actividad física_, mientras que para las mujeres la principal opción es las salida hacia opciones culturales, además de demostrar un grado más alto de afinidad por la lectura que los primeros (Figura \@ref(fig:salidasTopGenero)).
+
+
+```{r salidasTopGenero, fig.cap="Resultados de encuesta. Opción preferida para uso del tiempo libre, por género."}
+salidas_top_genero %>% 
+  ungroup() %>% 
+  filter(genero != "Otra categoría") %>% 
+  mutate(genero = ifelse(genero == "Chico", "Chicos", "Chicas")) %>% 
+    ggplot() +
+    geom_col(aes(x = opcion_salidas_1,  y = pct, fill = opcion_salidas_1)) +
+    theme_ipsum(grid = "") +
+    scale_y_percent() +
+    scale_fill_brewer(palette = "Pastel1") +
+    facet_wrap(~genero) +
+    labs(x = NULL, y = NULL) +
+    theme(axis.text.x=element_text(angle=45, hjust=1)) +
+    guides(fill = FALSE)
+
+```
+
+
+### Actitud frente a distintos tipos de oferta cultural (cine, música, teatro, galerías)
+
+Los respondentes fueron invitados a ordenar, según su atractivo de mayor a menor, cuatro alternativas de oferta cultural:
+
+- Danza / Teatro
+- Cine
+- Museo / Galería
+- Música en vivo
+
+De los resultados se desprende que las opciones de mayor atractivo resultan ser las de cine (en primer orden) y música en vivo. La preponderancia de éstas dos opciones es tal que, entre quienes eligieron cine como primera opción, la mayoría elige música en vivo; y la misma situación ocurre en viceversa. "Danza/Teatro" y "Museo/Galería" ocupan los últimos lugares en ese orden. La opción por Teatro y Danza es la última en grado de preferencia para la mayoría de los encuestados. Aún así, cabe señalar que todas las opciones, incluso las menos populares, han sido elegidas por al menos un 5% de los respondentes. (Figura \@ref(fig:plotAluvialOfertaCultural)).
+
+```{r plotAluvialOfertaCultural, fig.cap="Resultados de encuesta. Orden de preferencia en alternativas de oferta cultural."}
+aluvial %>% 
+    ggplot(aes(x = orden, stratum = opcion, alluvium = id, fill = opcion)) +
+    scale_fill_manual(values = colores_respuestas) +
+    geom_flow(stat = "alluvium", lode.guidance = "rightleft") +
+    geom_stratum() +
+    theme_ipsum(grid = "") +
+    theme(legend.position = "bottom") +
+    labs(x = NULL,
+         y = NULL)
+```
+
+tras responder cuál es la alternativa que se sitúa última en su orden de preferencia, los participantes dieron las razones del poco interés, eligiendo por _multiple choice_ entre:
+
+- Es caro
+- No me gusta / No me divierte
+- No tengo quien me acompañe
+- No la conozco bien / No se dónde se hace
+- Me queda lejos
+
+Los resultados, como se observa en la Figura \@ref(fig:plotRazones), sugieren que el principal motivo por el cual los jóvenes tienen bajo interés en Danza/Teatro y Galería/Museo es por considerarlos aburridos. También en ambos casos, el segundo motivo es la falta de conocimiento. En mucha menor medida, ya que es una alternativa más popular, los mismos motivos se han ofrecido como preponderantes para la música en vivo. El cine, la categoría menos relegada al último puesto en interés, cae en esa situación por razones distintas: en particular por su costo, indicando que para la mayoría de los jóvenes que no acceden al cine la única barrera es la falta de recursos.
+
+```{r plotRazones, fig.cap="Resultados de encuesta. Motivos por los cuales la oferta cutural no es de interés. Cada respondente puede dar más de un motivo."}
+ggplot(razones, aes(x = razon, y = freq, color = razon)) +
+  geom_point(size = 3) + 
+  geom_segment(aes(xend = razon,
+                   y = 0, 
+                   yend = freq)) +
+  coord_flip() +
+  facet_wrap(~opcion_cultural_4) +
+  guides(color = FALSE) +
+  labs(x = NULL, y = "respuestas") +
+  theme_minimalista +
+  theme(panel.spacing = unit(2, "lines"))
+```
+
+
+### Preferencias de entorno 
+
+Para la pregunta _Para salir a consumir cultura (comprar libros, ir al cine, escuchar música, o lo que sea)... qué ambiente te atrae más?_, los participantes pudieron optar entre:
+
+- "Un shopping center"
+- "El centro"
+- "Al aire libre"
+- "Me da igual!"
+
+Las tres ámbitos propuestos fueron elegidos en forma pareja, en contraste con la opción _Me da igual!_, que predominó como la elegida para la mitad de los encuestados Figura . 
+
+```{r plotPreferenciaLugar, fig.cap="Resultados de encuesta. Lugar favorito como ámbito para consumo de oferta cultural."}
+respuestas %>% 
+    group_by(preferencia_lugar_salidas) %>%
+    summarise(cantidad = n()) %>% 
+    mutate(pct = cantidad / sum(cantidad)) %>% 
+    ggplot() +
+    geom_col(aes(x = fct_reorder(preferencia_lugar_salidas, cantidad),  y = pct)) +
+    theme_ipsum(grid = "") +
+    scale_fill_ipsum() +
+    scale_y_percent() +
+    labs(title = '"¿Qué ambiente te atrae más?"',
+         x = NULL, y = NULL) 
+```
+
+
+### Preferencias intra-categoría 
+
+También se preguntó a los participantes por su preferencia respecto a distintas vertientes de literatura y música, con el fin de entender gustos en el sentido de demandas particulares. Por ejemplo, si existe un interés particular por los _comics_ en comparación a otros tipos de oferta editorial.
+
+La pregunta _¿Para leer, que te gusta más?_ ofreció como opciones
+
+- Literatura
+- Cómics
+
+Mientras que _¿Dónde te gustaría más escuchar música?_ pudo responderse con
+
+- Sala acústica
+- Club, bar, estadio cubierto
+- Aire libre
+
+Los resultados se resumen en la Figura \@ref(fig:plotPreferenciasIntraCategoria).
+
+```{r plotPreferenciasIntraCategoria, fig.cap="Resultados de encuesta. Preferencias dentro del consumo de material de lectura (izq.) y música (der.)."}
+
+pref_leer <- respuestas %>% 
+    group_by(preferencia_lectura) %>%
+    summarise(cantidad = n()) %>% 
+    mutate(pct = cantidad / sum(cantidad)) %>% 
+    ggplot() +
+    geom_col(aes(x = preferencia_lectura,  y = pct)) +
+    theme_ipsum(grid = "") +
+    scale_fill_ipsum() +
+    scale_y_percent() +
+    labs(subtitle = '"¿Para leer, que te gusta más?"',
+         x = NULL, y = NULL) +
+    theme(axis.text.x=element_text(angle=45, hjust=1))
+
+pref_escuchar <- respuestas %>% 
+    group_by(preferencia_ambito_musica) %>%
+    summarise(cantidad = n())  %>% 
+    mutate(pct = cantidad / sum(cantidad)) %>% 
+    ggplot() +
+    geom_col(aes(x = preferencia_ambito_musica,  y = pct)) +
+    theme_ipsum(grid = "") +
+    scale_fill_ipsum() +
+    scale_y_percent(limits = c(0, 0.6)) +
+    labs(subtitle = '"¿Dónde te gustaría más escuchar música?"',
+         x = NULL, y = NULL) +
+    theme(axis.text.x=element_text(angle=45, hjust=1))
+
+pref_leer + pref_escuchar
+```
+
+
+\pagebreak
+
+# Evaluación
+
+En la presente sección se evaluará la validez de un conjunto de hipótesis desarrolladas en trabajo conjunto por consultores del BID y personal de la Dirección General de Promoción Cultural del Gobierno de la Ciudad. El diseño de las hipótesis respondió a entender, por medio de su evaluación, la dinámica y resultados del uso del Pase Cultural por parte de su público objetivo. Las hipótesis, datos explotados, metodología de evaluación y resultados se resumen en el Cuadro \@ref(tab:tablaHipotesis).
+
+```{r tablaHipotesis}
+cuadro_de_hipotesis <- tribble(
+  ~ `Eje de análisis`,
+  ~ Hipótesis,
+  ~ `Fuentes de datos`,
+  ~ Metodología,
+  ~ Resultado,
+  "General",
+  "El perfil del inscripto que no hace uso de su Pase es distinto (sexo, ciudad formal/informal, nivel socioeconómico, origen del alta) al del usuario activo",
+  "transacciones, alumnos y comercios",
+  "Modelo logarítmico",
+  "Confirmada",
+  "Impacto de la promoción",
+  "Existe un mayor consumo entre los beneficiarios que participaron en actividades de promoción",
+  "transacciones, alumnos y comercios",
+  "Modelo logarítmico",
+  "Confirmada",
+  "Distancia",
+  "Existen diferencias entre los beneficiarios con más fácil acceso (caminando o en transporte público) a la oferta",
+  "transacciones, alumnos y comercios + rutas en transporte público",
+  "Modelo logarítmico",
+  "No confirmada",
+  "Distancia",
+  "La distancia en transporte público incide en los patrones de consumo",
+  "transacciones, alumnos y comercios + rutas en transporte público",
+  "Modelo logarítmico",
+  "No confirmada",
+  "Aglomeración",
+  "Existe un efecto de aglomeración, por el cual es más buscada la oferta cercana a: bares y cafés",
+  "transacciones, alumnos y comercios + Puntos de Interés",
+  "Modelo de regresión lineal",
+  "No confirmada",
+  "Aglomeración",
+  "Existe un efecto de aglomeración, por el cual es más buscada la oferta cercana a: plazas y parques",
+  "transacciones, alumnos y comercios + geolocalización de parques",
+  "Modelo de regresión lineal",
+  "No confirmada",
+  "Aglomeración",
+  "Existe un efecto de aglomeración, por el cual es más buscada la oferta cercana a: calles peatonales",
+  "transacciones, alumnos y comercios + geolocalización de peatonales",
+  "Modelo de regresión lineal",
+  "No confirmada",
+  "Ciudad formal vs. informal",
+  "los alumnos con domicilio en asentamientos precarios centrales consumen más que aquellos residentes en la periferia",
+  "transacciones, alumnos y comercios + geolocalización de asentamientos precarios",
+  "Análisis comparativo (cruces)",
+  "No confirmada",
+  "Género",
+  "Existen diferencia en la frecuencia de consumo de oferta cultural de acuerdo al género de los beneficiarios",
+  "transacciones, alumnos y comercios",
+  "Análisis comparativo (cruces)",
+  "Confirmada",
+  "Género",
+  "Existen diferencia en las distancias viajadas para el consumo de acuerdo al género de los beneficiarios",
+  "transacciones, alumnos y comercios + rutas en transporte público",
+  "Análisis comparativo (cruces)",
+  "No confirmada",
+  "Género",
+  "Los varones tienen mayor predilección por actividades deportivas como alternativa a las culturales",
+  "Encuesta Pase Cultural",
+  "Modelo de regresión logarítmica",
+  "Confirmada"
+)
+
+cuadro_de_hipotesis %>% 
+    knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Hipótesis de trabajo") %>%
+  kable_styling(latex_options = c("striped", "hold_position"), font_size = 7) %>%
+  column_spec(c(1,5), width = "7em") %>%
+  column_spec(2, width = "16em") %>%
+  column_spec(3:4, width = "10em")
+
+```
+
+
+
+
+## Público no alcanzado
+
+Sobre `r nrow(alumnos)` beneficiarios inscriptos en el Programa al `r fecha_de_datos`, se analizaron la composición del grupo que no hizo uso de su Pase. Es decir, se caracterizó el perfil de quienes no registraron ninguna transacción. Las características conocidas de todos los beneficiarios son su domicilio (del cual se obtiene nivel socio-económico de su entorno), su sexo, y si ha recibido promoción del Programa en un evento público o en una visita a su escuela.
+
+```{r agregarDataOrigenDeAltas}
+# Carga de planilla con beneficiarios que se anotaron 
+# en el marco de un evento de promoción
+
+alta_programa <- readxl::read_excel("../CABA/Beneficiarios/Base unificada (VF).xlsx", 
+                            sheet = 1) %>% 
+    filter(!is.na(ID)) %>% 
+  mutate(num__docum = `Número de documento (sin puntos)`)
+
+# Quitamos DNIs duplicados, quedandonos con el registro más reciente
+alta_programa <- alta_programa %>%
+  group_by(num__docum) %>% 
+  slice(n()) %>% 
+  ungroup()
+
+# hacer cruzable con la base de beneficiarios, 
+# y re-clasificar tipo de promoción recibida
+
+alta_programa <- alta_programa %>% 
+  transmute(num__docum,
+            origen_alta = ifelse(str_detect(`Origen de la inscripción`, 
+                                            "^Visita|^CCD - Escuelas Técnicas"),
+                               "Visita",
+                               "Evento"), 
+            fecha_alta = dmy(substr(`Fecha de ingreso`, 
+                                    nchar(`Fecha de ingreso`) - 9, 
+                                    nchar(`Fecha de ingreso`))))
+
+# Unir datos a base alumnos
+alumnos <- left_join(alumnos, alta_programa)
+
+alumnos <- alumnos %>% 
+  mutate(origen_alta = ifelse(is.na(origen_alta),
+                            "Autogestión",
+                            origen_alta))
+```
+
+
+En todos los casos, la cantidad de beneficiarios que se transforman en usuarios activos representan una fracción baja del total de inscriptos, en particular para aquellos que no auto-gestionaron su alta (Cuadro \@ref(tab:cuadroActivosporOrigenAlta)).
+
+```{r cuadroActivosporOrigenAlta}
+alumnos %>% 
+    group_by("Origen de alta" = origen_alta) %>% 
+    summarise(Total = n(),
+              "Usuarios activos (%)" = 
+                round(sum(con_transacciones) / Total, 2)) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Cantidad de usuarios y tasa de conversión en activos, por origen del alta") %>% 
+  kable_styling(latex_options = c("striped"))
+
+```
+
+Al dividir a los beneficiarios entre activos e inactivos, de acuerdo a que hayan utilizado su pase o no, se puede examinar su distribución en relación a las variables antes mencionadas (Figura \@ref(fig:activosVSinactivos)).
+
+Se observa que los entre los tenedores de la tarjeta del Pase Cultural que residen en barrios formales, los usuarios activos superan en número a los inactivos. La relación inversa se da entre aquellos beneficiarios que residen en asentamientos precarios.
+
+Un patrón similar surge respecto al nivel socioeconómico, medido en una escala continua de 1 (menor) a 10 (mayor). Entre los beneficiarios de menor nivel socioeconómico, la mayor parte no ha hecho uso de la tarjeta que recibió. La diferencia entre usuarios activos e inactivos se reduce a medida que incrementa el nivel socioeconómico, invirtiéndose la relación en los dos estratos más altos, en los cuales los usuarios activos son mayoría. 
+
+En cuanto al sexo, se observa una tasa de uso más alta entre mujeres, en línea con el hallazgo previo de que las mujeres son usuarios más frecuentes del Pase. Es decir, no sólo las mujeres tienden a hacer uso efectivo de su inscripción al programa en mayor medida que los hombres, también son usuarias más frecuentes en comparación con usuarios activos varones.
+
+El tipo de ingreso al Programa se clasifica entre "Visita", para aquellos beneficiarios que se dieron de alta tras una visita del equipo del Pase Cultural a su escuela; "Evento", para aquellos que se inscribieron en el marco de un evento o actividad pública a cargo de la Ciudad; y "Autogestión" para aquellos que se inscribieron por iniciativa propia accediendo al portal online del Programa, es decir quienes no recibieron promoción directa. Éste último grupo es el que exhibe mayor tasa de conversión en usuarios activos. Dicho de otro modo, los beneficiarios que recibieron su pase en el contexto de un evento, de promoción han tenido una menor tasa de conversión que quienes se dieron de alta por su cuenta.
+
+Ese último punto debe ser interpretado como efecto de la auto-selección: las personas interesadas en el acceso a oferta cultura al punto tal que por su cuenta descubren la existencia del Pase y completan los pasos para obtenerlo, son precisamente aquellas que cuentan con más posibilidades e interés en usarlo comparadas con el público en general.
+
+```{r activosVSinactivos, fig.cap = "Usuarios activos vs. inactivos: distribución por lugar de domicilio, NSE, sexo y origen de alta"}
+
+
+# Un resumen de atributos del grupo con transacciones vs. los que jamas usaron la tarjeta
+
+diferencias <- alumnos %>% 
+  mutate(beneficiario = ifelse(con_transacciones, "Activo", "Inactivo")) %>% 
+  select(beneficiario, sexo, tipo__domicilio, decil_NSE, origen_alta) %>% 
+  gather(key = "atributo", value = "valor", -beneficiario)
+
+
+dif_nse <- diferencias %>% 
+  filter(atributo == "decil_NSE", !is.na(valor)) %>% 
+  mutate(valor = factor(valor, 
+                        levels = rev(c("1", "2", "3", "4", "5","6", "7", "8", "9", "10")),
+                        ordered = TRUE)) %>% 
+  ggplot() + 
+  geom_bar(aes(x = beneficiario, fill = valor), position = "fill") +
+  scale_fill_viridis_d(option = "plasma") +
+  theme_minimal() +
+  scale_y_percent() +
+  labs(title = NULL,
+         fill = NULL,
+         y = NULL,
+         x = "Nivel Socioeconómico")
+
+dif_sexo <- diferencias %>% 
+  filter(atributo == "sexo", valor != "No declara") %>%
+  ggplot() + 
+  geom_bar(aes(x = beneficiario, fill = valor), position = "fill") +
+  scale_fill_ipsum() +
+  theme_minimal() +
+  scale_y_percent() +
+  labs(title = NULL,
+         fill = NULL,
+         y = NULL,
+         x = "Sexo")
+
+
+dif_domicilio <- diferencias %>% 
+  filter(atributo == "tipo__domicilio") %>%
+  mutate(valor = ifelse(valor == "Calle Cemento", "Barrio Formal", valor)) %>% 
+  ggplot() + 
+  geom_bar(aes(x = beneficiario, fill = valor), position = "fill") +
+  scale_fill_brewer(palette = "Dark2") + 
+  theme_minimal() +
+  scale_y_percent() +
+  labs(title = NULL,
+         fill = NULL,
+         y = NULL,
+         x = "Domicilio")
+
+
+dif_origen_alta <- diferencias %>% 
+  filter(atributo == "origen_alta") %>%
+  ggplot() + 
+  geom_bar(aes(x = beneficiario, fill = valor), position = "fill") +
+  scale_fill_brewer(palette = "Set2") + 
+  theme_minimal() +
+  scale_y_percent() +
+  labs(title = NULL,
+         fill = NULL,
+         y = NULL,
+         x = "Origen del alta")
+
+dif_domicilio + dif_nse + dif_sexo + dif_origen_alta
+
+```
+
+```{r modeloLogisticoUsuariosActivos}
+# Volvemos a formato "wide"
+diferencias <- alumnos %>% 
+  mutate(activo = ifelse(con_transacciones, TRUE, FALSE)) %>% 
+  select(activo, sexo, tipo__domicilio, decil_NSE, origen_alta)
+
+modelo_usuario_activo <- glm(data = diferencias, 
+                        activo ~ 
+                          sexo + tipo__domicilio + decil_NSE + origen_alta,
+                      family = "binomial")
+```
+
+Para cuantificar el efecto de cada variable en la conversión de beneficiarios en usuarios activos, se estimó un modelo logarítmico, cuyos resultados se resumen en el Cuadro \@ref(tab:printModeloLogisticoUsuariosActivos). 
+
+Los modelos logarítmicos se utilizan para estimar el efecto de variables predictoras cunado la variable a predecir es de tipo binario: sólo dos resultados posibles. Por ejemplo, predecir si un alumno inscripto en el pase cultural hará alguna vez uso de su Pase versus la alternativa, es decir que no lo haga. El efecto de las variables predictoras se expresa comparando _odds_, término a veces traducido como "chances", la relación entre la probabilidad de que el evento ocurra y la probabilidad de que no lo haga. Si un evento ocurre para 80% de las observaciones, sus "chances" serán de 4 a 1; porque la ocurrencia se produce cuatro veces por cada instancia en que no lo hace. Si un evento ocurre para un 50% de las observaciones, sus chances son 1 a 1. Para interpretar los resultados de un modelo logarítmico, suele expresarse el efecto de un predictor como un factor de multiplicación de las chances: si una variable se correlaciona en forma positiva con la ocurrencia del evento a predecir, multiplicará por más de 1 a las chances -por ejemplo, 1.3, es decir un incremento del 30%). Si por el contrario, el efecto es negativo, multiplicará por menos de 1; si fuera 0.8 implicaría una reducción del 20% de las chances.
+
+En el modelo de conversión a usuario activo, considerando como variables predictoras tipo de domicilio, sexo, nivel socioeconómico y promoción recibida, se encontró efecto con significancia estadística para las tres últimas. Con todas las demás variables similares, para un beneficiario varón las chances de conversión a usuario activo son menores que para una mujer (proporción `r signif(exp(modelo_usuario_activo$coefficients["sexoMasculino"]), 2)` a 1). Del mismo modo cada incremento de escala NSE implica un leve incremento en las chances de conversión, del `r (signif(exp(modelo_usuario_activo$coefficients["decil_NSE"]), 3) - 1) * 100`% por escalón. Por último -como se anticipaba por el análisis visual- un beneficiario que se inscribe por su cuenta en el Programa tiene mayores chances de volverse usuario activo, lo cual se refleja en el modelo como un efecto negativo de la promoción. Existe cierta diferencia entre quienes recibieron promoción por visita en su escuela vs. quienes se inscribieron como parte de un evento público. Las chances son más bajas para los visitados (que reciben detalles sobre el Programa) que para quienes se inscribieron durante un evento, con explicaciones de menor profundidad. Este hallazgo podría explicarse también por un efecto de auto-selección en los eventos públicos (si la audiencia tuviera mayor interés por actividades culturales que la media de los estudiantes), pero también sugiere la posibilidad de revisar la estrategia de promoción en escuelas para alcanzar mejores resultados.    
+
+```{r printModeloLogisticoUsuariosActivos}
+modelo_usuario_activo %>% 
+  broom::tidy() %>% 
+  format_model_table() %>% 
+  select(term, estimate, p.value) %>% 
+  set_names(c("variable", "efecto", "p-valor")) %>% 
+  filter(variable != "tipo__domicilioOtro") %>% 
+  mutate(variable = c("constante", "sexo - masculino", "sexo - no declara", 
+                      "domicilio en barrio formal",
+                      "decil NSE", "alta en evento", " alta en visita")) %>% 
+  mutate(`multiplicador de chances` = signif(exp(as.numeric(efecto)), 3)) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Factores que correlacionan con conversión a usuario activo") %>%
+  kable_styling(latex_options = "striped") %>% 
+  footnote(general = "Regresión logarítmica (resumen)",
+           general_title = "")
+```
+
+
+
+## Impacto de la promoción
+
+Hemos constatado que que quienes acceden al Pase Cultural de forma auto-gestionada tienden a ser quienes hacen uso del pase luego, lo que sugiere que representan al público con interés previo en la oferta.
+
+Evaluamos ahora el efecto de la promoción del Programa entre los beneficiarios que han sido dados de alta por invitación en persona, definiendo dos grupos: quienes se inscribieron durante un evento público o como parte de un programa de acción social del Gobierno de la Ciudad, y quienes lo hicieron en el marco de una visita del equipo de promoción del Pase Cultural a su escuela. A estos últimos los consideramos como la cohorte que recibió promoción, ya que durante las visitas a escuela se explican los beneficios del Programa y la forma de uso. En contraste, el alta durante eventos o como parte de un paquete mayor de beneficios de asistencia pública no implica una exposición detallada del Programa; en algunos casos se limita a la recepción de una firma de aprobación por parte del beneficiario o adulto responsable.
+
+### ¿Existe un mayor consumo entre los beneficiarios que participaron en actividades de promoción?
+
+```{r definiendoCohortePromocion}
+fecha_de_corte <- max(transacciones$Fecha, na.rm = TRUE) %m-% months(1)
+
+alta_programa <- alta_programa %>% 
+  mutate(semanas_antiguedad = interval(fecha_alta, fecha_de_corte) %/% weeks(1))
+
+promocionados <- alta_programa %>% 
+  filter(origen_alta %in% c("Visita", "Evento"))
+
+```
+
+La pregunta puede responderse en base a la frecuencia de realización de actividades culturales observada en los registros de transacciones realizadas con el Pase.
+
+```{r modeloLinealTXsPromocion}
+
+freq_tx <- freq_tx %>% 
+  left_join(select(alta_programa, 
+                   Nro_Doc = num__docum, origen_alta:semanas_antiguedad)) %>%  
+  left_join(select(alumnos, Nro_Doc = num__docum, sexo)) %>% 
+  filter(fecha_alta <= fecha_de_corte) %>% 
+  mutate(tx_semana = freq / semanas_antiguedad)
+
+
+modelo_promocion_frecuencia <- lm(data = filter(freq_tx, semanas_antiguedad > 1), 
+   tx_semana ~ origen_alta + semanas_antiguedad + sexo + decil_NSE + tipo__domicilio ) 
+
+```
+
+Se cuantificó la correlación entre la exposición a promoción y el incremento en la frecuencia de uso del Pase Cultural, medida como transacciones por semana. Para ello, se decidió retirar del universo de análisis a los beneficiarios con menos de un mes de antigüedad en el Programa al momento en que se generó el registro de transacciones. Así se evitó considerar quienes registraron pocas o ninguna transacción debido a ser participantes recientes.
+
+La regresión lineal, resumida en Cuadro \@ref(tab:printModeloLinealTXsPromocion), encuentra un efecto significativo en la exposición a promoción, aún controlando por sexo, nivel socioeconómico, domicilio en asentamiento precario y antigüedad del beneficiario en el Programa. De hecho, sólo los efectos de la exposición a promoción y del sexo resultan de significancia estadística, siendo la exposición de mucho mayor impacto. Para los beneficiarios que recibieron promoción se espera un incremento de `r round(modelo_promocion_frecuencia$coefficients["origen_altaVisita"], 3)` operaciones con su Pase por semana, lo que implica unas `r round(modelo_promocion_frecuencia$coefficients["origen_altaVisita"] * 52)` consumos de oferta cultural adicionales al año.
+
+```{r printModeloLinealTXsPromocion}
+modelo_promocion_frecuencia %>%   
+  broom::tidy() %>% 
+  format_model_table() %>% 
+  select(term, estimate, p.value) %>% 
+  set_names(c("variable", "efecto", "p-valor")) %>% 
+  filter(variable != "sexoNo declara") %>% 
+  mutate(variable = c("constante", "recibió promoción", 
+                      "antiguedad en el programa (semanas)",
+                      "sexo masculino",
+                      "decil NSE", "domicilio en asentamiento precario")) %>% knitr::kable(format = "latex",
+               booktabs = T,
+               align = "r",
+               caption = "Frecuencia de consumo de actividades culturales") %>%
+  kable_styling(latex_options = "striped") %>% 
+  footnote(general = "Regresión lineal (resumen)",
+           general_title = "")
+```
+
+
+## Factores preponderantes en el acceso a la cultura
+
+En esta sección se examinará el grado de consumo cultural de los beneficiarios, en relación a distintos factores. De localización, como la cercanía de su domicilio a la oferta cultural, socioambientales, como su residencia en asentamientos precarios periféricos vs. centrales, o demográficos como el género.
+
+### Distancia y aglomeración
+
+#### ¿Existen diferencias entre los beneficiarios con más fácil acceso (caminando o en transporte público) a la oferta?
+
+```{r contarSitiosCercanos, cache=TRUE}
+
+# Agregamos su celda a cada alumno inscripto (antes se hizo solo para los activos)
+alumnos <- alumnos %>% 
+  as_tibble() %>% 
+  filter(!is.na(lng_domicilio)) %>% 
+  st_as_sf(coords = c("lng_domicilio", "lat_domicilio"), crs = 4326, remove = FALSE) %>%
+  st_join(celdas_caba) %>% 
+  rename(celda_domicilio = id) %>% 
+  st_set_geometry(NULL) %>% 
+  {left_join(alumnos, .)} %>%   
+  filter(!is.na(lng_institucion)) %>% # Ahora a identificar celdas de la escuela
+  st_as_sf(coords = c("lng_institucion", "lat_institucion"), crs = 4326, remove = FALSE) %>%
+  st_join(celdas_caba) %>% 
+  rename(celda_institucion = id) %>% 
+  st_set_geometry(NULL) %>% 
+  {left_join(alumnos, .)}
+
+# Agregar celda a comercios
+
+comercios_celdas <- comercios %>% 
+  filter(!is.na(lat), !is.na(Rubro)) %>% 
+  st_as_sf(coords = c("lat", "lng"), crs = 4326) %>% 
+  st_join(celdas_caba) %>% 
+  st_set_geometry(NULL)
+
+
+
+# Funciones útiles
+
+celdas_contiguas <- function(celda) {
+  st_intersects(celdas_caba[celda,], celdas_caba) %>% 
+  unlist
+}
+
+
+comercios_caminables <- function(alumnos, 
+                                 comercios_celdas) {
+  
+  
+  obtener_comercios_cercanos <- function(num__docum,
+                                         celda_domicilio,
+                                         celda_institucion) {
+    
+  caminables_domicilio <- comercios_celdas %>% 
+      filter(id %in% celdas_contiguas(celda_domicilio)) 
+    
+  if(is.na(celda_domicilio) | !(nrow(caminables_domicilio))) {
+    caminables_domicilio <- NULL
+  } else {
+    caminables_domicilio <-  caminables_domicilio %>% 
+      group_by(Rubro) %>% 
+      summarise(cantidad = n()) %>% 
+      spread(1,2) %>% 
+      mutate(total = rowSums(.),
+             desde = "domicilio") %>% 
+      {bind_cols(num__docum = num__docum, .)}
+  }
+      
+  
+  caminables_escuela <- comercios_celdas %>% 
+      filter(id %in% celdas_contiguas(celda_institucion)) 
+  
+  if(is.na(celda_institucion)| !(nrow(caminables_escuela))) {
+    caminables_escuela <- NULL
+  } else {
+    caminables_escuela <- comercios_celdas %>% 
+      filter(id %in% celdas_contiguas(celda_institucion)) %>% 
+      group_by(Rubro) %>% 
+      summarise(cantidad = n()) %>% 
+      spread(1,2) %>% 
+      mutate(total = rowSums(.),
+             desde = "escuela") %>% 
+      {bind_cols(num__docum = num__docum, .)}
+
+  }
+  
+      
+  bind_rows(caminables_domicilio, caminables_escuela)
+  
+  }
+  
+  alumnos %>% 
+    select(num__docum, celda_domicilio, celda_institucion) %>% 
+    pmap_df(obtener_comercios_cercanos) %>% 
+    # Llevar las columnas desde y total al final
+    select(-desde, -total, desde, total) %>% 
+    replace(is.na(.), 0)
+  
+}
+
+caminables <- comercios_caminables(alumnos, comercios_celdas) 
+```
+
+Se calculó la cantidad de sitios de oferta cultural, por rubro, en las cercanías del domicilio y de la escuela de cada beneficiario. Tomando las celdas ilustradas en la Figura \@ref(fig:celdasCABA), se considera que un sitio se encuentra a "distancia caminable" de domicilios o escuelas si se ubica en la misma celda o en una contigua.
+
+Bajo ese criterio, se encontró la cantidad de sitios de oferta dentro de distancia caminable para cada beneficiario y establecimiento educativo (Figura \@ref(fig:plotDistCaminables)).
+
+
+```{r plotDistCaminables, fig.cap = "domicilio (particular y de escuela) de beneficiarios, vs. cantidad de sitios de oferta cultural a distancia caminable. Cada punto representa un beneficiario, y su altura en el eje x indica la cantidad de sitios cercanos de cada rubro. El color de los puntos indica si los beneficiarios han hecho uso de su pase en algún sitio de ese rubro."}
+
+caminables_long <- caminables %>% 
+  gather("rubro", "cercanos", -num__docum, -desde)
+
+tx_rubro_alumno <- transacciones_geo %>% 
+  mutate(num__docum = Nro_Doc,
+         rubro = Rubro) %>% 
+  group_by(num__docum, rubro) %>% 
+  summarise(freq = n()) %>%
+  ungroup()
+
+caminables <- expand.grid(num__docum = alumnos$num__docum, 
+            rubro = unique(caminables_long$rubro[caminables_long$rubro != "total"])) %>% 
+  left_join(tx_rubro_alumno) %>% 
+  left_join(caminables_long) %>% 
+  filter(!is.na(desde)) %>% # Esta linea retira domicilios con coords desconocidas
+  mutate(freq = ifelse(is.na(freq), 0, freq),
+         status = ifelse(freq >0,
+                         "activo",
+                         "inactivo"))
+
+caminables %>% 
+  mutate(status = ifelse(freq >0,
+                         "consumió rubro",
+                         "no consumió rubro"),
+         desde = ifelse(desde == "domicilio", 
+                        "desde el domicilio", 
+                        "desde la escuela")) %>% 
+  arrange(desc(status)) %>% 
+  ggplot() +
+  geom_jitter(aes(rubro, cercanos, color = status), alpha = .3) +
+  scale_color_brewer(type = "qual") +
+  facet_wrap(~desde) + 
+  coord_flip() +
+  theme_minimalista +
+  labs(title = "Cantidad de oferta a distancia caminable",
+       color = "beneficiario", 
+       x = NULL, y = NULL)
+
+```
+
+
+```{r modeloLogitCaminables}
+
+tx_caminables_domicilio <- caminables %>%
+  filter(desde == "domicilio") %>% 
+  mutate(consumio = status == "activo") %>% 
+  left_join(select(alumnos, num__docum, 
+                   domicilio_asentamiento_precario, 
+                   decil_NSE, origen_alta)) %>% 
+  group_by(rubro) %>% 
+  nest()
+
+
+# Le ponemos decil NSE a todas las escuelas, esto no se hizo antes 
+# (solo con escuelas con alumnos activos)
+
+escuelas <- escuelas %>% 
+  filter(!is.na(lng)) %>% 
+  st_as_sf(coords = c("lng", "lat"), crs = 4326) %>%
+  st_join(select(radios, decil_NSE)) %>% 
+  select(CUE, decil_NSE) %>% 
+  {left_join(escuelas, .)} %>% 
+  rename(CUE_institucion = CUE, decil_NSE_escuela = decil_NSE)
+
+
+tx_caminables_escuela <- caminables %>%
+  mutate(consumio = status == "activo") %>% 
+  filter(desde == "escuela") %>% 
+  left_join(select(alumnos, num__docum, CUE_institucion, origen_alta)) %>% 
+  left_join(select(escuelas, CUE_institucion, decil_NSE_escuela)) %>% 
+  group_by(rubro) %>% 
+  nest()
+
+
+
+modelo_cercanos_domicilio <- function(df) {
+  glm(consumio ~ origen_alta + decil_NSE + domicilio_asentamiento_precario + cercanos, 
+      data = df, family = "binomial")
+}
+
+modelo_cercanos_escuela <- function(df) {
+  glm(consumio ~ origen_alta + decil_NSE_escuela + cercanos, 
+      data = df, family = "binomial")
+}
+
+tx_caminables_domicilio <- tx_caminables_domicilio %>% 
+  mutate(modelo = map(data, modelo_cercanos_domicilio),
+         valores_modelo = map(modelo, broom::tidy)) %>% 
+  unnest(valores_modelo)
+
+
+tx_caminables_escuela <- tx_caminables_escuela %>% 
+  mutate(modelo = map(data, modelo_cercanos_escuela),
+         valores_modelo = map(modelo, broom::tidy)) %>% 
+  unnest(valores_modelo)
+
+```
+
+```{r plotsModelosCaminables, eval=FALSE}
+# Este plot muestra que no hay correlacion entre cercania y chances 
+# de volverse usuario activo, para ninguno de los rubros
+tx_caminables_domicilio %>%
+  filter(term != "(Intercept)") %>%
+  ggplot() +
+    geom_hline(yintercept = 0.005, color = "salmon") +
+    geom_point(data = filter(tx_caminables_domicilio,
+                             term != "(Intercept)", p.value < 0.05),
+               aes(term, p.value), size = 6) +
+    geom_point(aes(term, p.value, color = exp(estimate)), size = 5) +
+    scale_color_distiller(palette = "Spectral") +
+    coord_flip() +
+    facet_wrap(~rubro) +
+    theme_minimal()
+
+
+# Este plot muestra que en el rubro cine se ecuentra correlacion entre cercania 
+# de la escuela y chances de que el beneficiario consuma el rubro 
+tx_caminables_escuela %>%
+  filter(term != "(Intercept)") %>%
+  ggplot() +
+    geom_hline(yintercept = 0.005, color = "salmon") +
+    geom_point(data = filter(tx_caminables_escuela,
+                             term != "(Intercept)", p.value < 0.05),
+               aes(term, p.value), size = 6) +
+    geom_point(aes(term, p.value, color = exp(estimate)), size = 5) +
+    scale_color_distiller(palette = "Spectral") +
+    coord_flip() +
+    facet_wrap(~rubro) +
+    theme_minimal()
+
+```
+
+Se evaluó la correlación entre disponibilidad de oferta a distancia caminable y posibilidad de consumo; es decir, si la abundancia de opciones un determinado rubro -por ejemplo, librerías- a distancia caminable incrementa las chances de que un beneficiario haga uso de de su pase en esa categoría. Se realizó un modelo logarítmico para predecir si un beneficiario registrará algún consumo en cada rubro. Controlando por origen del alta (promovida o auto-gestionada) y NSE, y sólo se encontró efecto estadísticamente significativo de la accesibilidad a oferta en las chances de que un beneficiario sea consumidor de cine. Esta ausencia de correlación para las demás categorías, que se comprueba tanto para la distancia al domicilio como a la escuela, indicaría que otros factores (socioeconómicos y culturales) pesan más que la accesibilidad física en cuanto a la capacidad de los beneficiarios de aprovechar el Programa. Tampoco se encontró correlación retirando del análisis a los alumnos que se registraron por su cuenta, alternativa evaluada en caso de que hubiera conducta distinta ente autoinscriptos y los demás.
+
+```{r VariantesModeloCaminables, eval=FALSE}
+# Ahora solo alumnos promovidos  (EL MODELO NO CONVERGE)
+caminables %>%
+  filter(desde == "domicilio") %>% 
+  mutate(consumio = status == "activo") %>% 
+  left_join(select(alumnos, num__docum, 
+                   domicilio_asentamiento_precario, 
+                   decil_NSE, origen_alta)) %>% 
+  filter(origen_alta != "Autogestión") %>% 
+  group_by(rubro) %>% 
+  nest() %>% 
+  mutate(modelo = map(data, modelo_cercanos_domicilio),
+         valores_modelo = map(modelo, broom::tidy)) %>% 
+  unnest(valores_modelo) %>% 
+  filter(term != "(Intercept)") %>%
+   ggplot() +
+    geom_hline(yintercept = 0.005, color = "salmon") +
+    geom_point(data = filter(tx_caminables_escuela,
+                             term != "(Intercept)", p.value < 0.05),
+               aes(term, p.value), size = 6) +
+    geom_point(aes(term, p.value, color = exp(estimate)), size = 5) +
+    scale_color_distiller(palette = "Spectral") +
+    coord_flip() +
+    facet_wrap(~rubro) +
+    theme_minimal()
+
+# Ahora solo alumnos con consumo, regresion lineal contra cantidad
+
+modelo_cercanos_domicilio_lineal <- function(df) {
+  glm(freq ~ origen_alta + decil_NSE + domicilio_asentamiento_precario + cercanos, 
+      data = df, family = "binomial")
+}
+
+# No hay correlacion significativa
+caminables %>%
+  filter(desde == "domicilio") %>% 
+  mutate(consumio = status == "activo") %>% 
+  left_join(select(alumnos, num__docum, 
+                   domicilio_asentamiento_precario, 
+                   decil_NSE, origen_alta)) %>% 
+  group_by(rubro) %>% 
+  nest() %>% 
+  mutate(modelo = map(data, modelo_cercanos_domicilio),
+         valores_modelo = map(modelo, broom::tidy)) %>% 
+  unnest(valores_modelo) %>% 
+  filter(term != "(Intercept)") %>%
+   ggplot() +
+    geom_hline(yintercept = 0.005, color = "salmon") +
+    geom_point(data = filter(tx_caminables_escuela,
+                             term != "(Intercept)", p.value < 0.05),
+               aes(term, p.value), size = 6) +
+    geom_point(aes(term, p.value, color = estimate), size = 5) +
+    scale_color_distiller(palette = "Spectral") +
+    coord_flip() +
+    facet_wrap(~rubro) +
+    theme_minimal()
+
+
+
+```
+
+#### ¿La distancia en transporte público incide en los patrones de consumo?
+
+La distancia en transporte público que media entre el domicilio de los beneficiarios y los sitios donde consumen la oferta cultural parece ser un factor de peso para las categorías cine y librería artística, pero no para las demás.
+
+Como de discutió en la sección de análisis descriptivo, el cine es la categoría más buscada por los beneficiarios. Éstos tienden a concentrar su consumo en las salas más cercanas a su domicilio, tanto entre quienes habitan en zonas de NSE alto como para los que residen en las de NSE bajo (Figura \@ref(fig:plotDistancias2)). Para el resto de los rubros no parece haber un patrón de preferencia por oferta cercana, con la excepción de las librerías artísticas, cuyo acceso por los beneficiarios de NSE más bajo es más frecuente en los sitios a menos de media hora de viaje.
+
+```{r plotDistancias2, fig.cap="Distancia recorrida por beneficiarios, según tipo de oferta y situación de NSE", fig.asp=1}
+
+transacciones_geo %>% 
+  filter(!is.na(Rubro),
+         !is.na(tiempo_domicilio)) %>% 
+  select(num__docum = Nro_Doc, 
+         decil_NSE_alumno = decil_NSE_alumo,
+         rubro = Rubro, 
+         tiempo_domicilio, 
+         tiempo_institucion) %>%
+  arrange(tiempo_domicilio) %>% 
+  mutate(rango_tiempo = case_when(
+    (tiempo_domicilio / 60) < 15 ~ "menos de 15'",
+    (tiempo_domicilio / 60) < 30 ~ "15' a 30'",
+    (tiempo_domicilio / 60) < 45 ~ "30' a 45'",
+    (tiempo_domicilio / 60) < 60 ~ "45' a 1h",
+    (tiempo_domicilio / 60) < 75 ~ "1h a 1h 15'",
+    (tiempo_domicilio / 60) < 90 ~ "1h 15' a 1h 30'",
+    TRUE                         ~ "+ 1h 30'"),
+    rango_tiempo = fct_inorder(rango_tiempo, ordered = TRUE),
+    NSE = ifelse(decil_NSE_alumno > 5, "NSE > a la media", "NSE < a la media")) %>% 
+  group_by(rubro, rango_tiempo, NSE) %>% 
+  summarise(n = n()) %>% 
+  ggplot() +
+  geom_path(aes(x = rango_tiempo, y = n, group = rubro, color = rubro),
+            size = 1.5, alpha = .75) +
+  scale_color_brewer(palette = "Dark2") +
+  theme_minimal() +
+  labs(title = "Cantidad de transacciones por tiempo de viaje hasta lugar de consumo",
+       y = NULL,
+       x = NULL) +
+  facet_wrap(~NSE, ncol = 1)
+
+```
+
+Para descartar la posibilidad de que los patrones observado se deban simplemente a la distancia a la que se encuentra la oferta (es decir, que cuando los beneficiarios viajan más para acceder a una opción se deba a que viven lejos) se estimó la distancia hasta el proveedor más cercano al domicilio de cada beneficiario, en cada rubro. Luego se comparó la diferencia de tiempo de viaje entre el lugar donde se realiza cada transacción y el sitio más cercano en ese rubro donde se podría haber realizado. Cuando la cercanía es un factor preponderante, debería verse una distribución concentrada en la proximidad de 0, es decir en consumos que ocurren en el sitio más cercano, disminuyendo a medida que aumenta la diferencia. Ésto sólo se verifica para las categorías cine y librería artística, reforzando los hallazgos antes discutidos. (Figura \@ref(fig:plotDifTiempo)).
+
+```{r plotDifTiempo, fig.cap="Histogramas: tiempo adicional de viaje en transporte público requerido para acceder hasta el sitio de consumo, comparado con la opción más cercana al domicilio del beneficiario. Para transacciones que ocurren en el sitio más cercano, la diferencia es cero."}
+
+mas_cercano_rubro_persona <- expand.grid(num__docum = alumnos_activos$num__docum,
+                                         rubro = unique(comercios$Rubro)) %>% 
+  left_join(select(alumnos_activos, num__docum, O = celda_domicilio)) %>%
+  left_join(select(comercios_celdas, rubro = Rubro, D = id)) %>% 
+  filter(!is.na(O), !is.na(D)) %>% 
+  left_join(distancias) %>% 
+  group_by(num__docum, rubro) %>% 
+  summarise(mas_cercano_dist = min(distance_m),
+            mas_cercano_tiempo = min(duration_s)) %>% 
+  ungroup()
+
+difs_tiempo_tx <- transacciones_geo %>% 
+  filter(!is.na(Rubro),
+         !is.na(tiempo_domicilio)) %>% 
+  select(num__docum = Nro_Doc, 
+         decil_NSE_alumno = decil_NSE_alumo,
+         rubro = Rubro, 
+         tiempo_domicilio, 
+         tiempo_institucion) %>% 
+  left_join(mas_cercano_rubro_persona) %>% 
+  mutate(dif_tiempo_opcion_mas_cercana = tiempo_domicilio - mas_cercano_tiempo,
+         # Esto corrige un error con un cine en P. Madero que sale con diferencia
+         # negativa (es porque en comercios_celda aparece en la celda 14,
+         # pero en transacciones_geo en la elda contigua, la 11... 
+         # diferenicias debido a que el cine esta justo sobre el limite de las 
+         # dos celdas y en la lista de comercios se georeferencio de un lado, y
+         # en la de transacciones, del otro)
+         dif_tiempo_opcion_mas_cercana = ifelse(
+           dif_tiempo_opcion_mas_cercana < 0, 0, dif_tiempo_opcion_mas_cercana))
+
+
+ggplot(difs_tiempo_tx) +
+  geom_histogram(aes(dif_tiempo_opcion_mas_cercana/60, fill = rubro)) +
+  facet_wrap(~rubro, scales = "free_y", strip.position = "bottom") + 
+  scale_fill_brewer(palette = "Dark2") +
+  theme_minimal() +
+  labs(x = "tiempo de viaje por encima del de la opción más cercana (minutos)")
+  
+```
+
+
+
+
+#### ¿Existe un efecto de aglomeración, por el cual la oferta cercana a otros _amenities_ urbanos es más buscada?
+
+Se buscaron indicios de un efecto "atractor" en diversos _amenities_ urbanos en torno a los sitos de oferta cultural ofrecidos por el Programa. Éstos son:
+
+ * Centros de presencia concentrada (_clusters_) de bares y cafés
+ * Parques y espacios verdes públicos recreativos
+ * Calles peatonales con actividad comercial (tradicionales paseos de compras al aire libre)
+
+```{r procesarBaresCafes}
+bares_y_cafes <- st_read("../entregables/data auxiliar/amenities/caba_bares_cafes.geojson", 
+                  quiet = TRUE)
+
+
+get_hull<- function(df) {
+  df %>% 
+    summarise(cluster = last(cluster)) %>% 
+        st_convex_hull() 
+}
+
+bares_y_cafes_cluster_catchment_area <- bares_y_cafes %>%
+  filter(cluster != 0) %>%
+  split(.$cluster) %>%
+  map(get_hull) %>%
+  reduce(rbind) %>%
+  st_transform(5348) %>% # POSGAR 2007 / Argentina 6
+  st_buffer(200) %>% 
+  st_transform(4326) %>% # Back to Mercator 
+  mutate(cluster = c("Palermo Soho", "Plaza San Martín",
+                     "Plaza Dorrego", "Casco Histórico",
+                     "Avenida de Mayo", "Barrio Once",
+                     "Palermo Hollywood", "Las Cañitas"))
+```
+
+
+Para identificar bares y cafés se tomó como fuente una consulta exhaustiva a la base de datos de _Google Maps Platform_[^notaGPLACES] (la misma que alimenta las aplicaciones de mapas de la compañía) obteniendo así la ubicación de `r nrow(bares_y_cafes)` establecimientos de tipo bar o café distribuidos por toda la Ciudad de Buenos Aires. 
+
+[^notaGPLACES]: "Google Maps Platform: Place Search", https://developers.google.com/places/web-service/search
+
+La identificación de los _clusters_ - centros de aglomeración de la actividad- se realizó aplicando DBSCAN[^notaDBSCAN], un algoritmo de _Machine Learning_ idóneo para detectar patrones de agrupación en el espacio físico. Los parámetros usados para identificar aglomeración fueron los de considerar áreas continuas donde cada bar o café coexiste con al menos 25 establecimientos del mismo tipo en un radio de 128 metros (una cuadra). Los clusters hallados coinciden con la experiencia de un habitante de la ciudad respecto a zonas conocidas y atractivas por su concentración de oferta (Figura \@ref(fig:PlotBaresCafes)). Se estableció una zona de "buffer" de 200 metros en torno a cada aglomerado, y para cada establecimiento ofrecido por el Pase Cultural se estableció si su ubicación queda al interior.
+
+[^notaDBSCAN]: Véase _Xin-yan, L. I., & De-ren, L. I. (2005). DBSCAN spatial clustering algorithm and its application in urban planning [J]. Science of Surveying and Mapping, 3._
+Para un ejemplo práctico, "DBSCAN: Machine Learning para detectar centros de actividad urbana", https://bitsandbricks.github.io/post/dbscan-machine-learning-para-detectar-centros-de-actividad-urbana/
+
+
+```{r PlotBaresCafes, fig.cap="Ubicación de bares y cafés, y sus zonas de aglomeración (clusters)", dpi=400}
+
+mapabase  +
+  geom_point(data = transacciones_geo %>% 
+               group_by(Comercio, lon, lat) %>% 
+               summarise(transacciones = n()), 
+               aes(x = lon, y = lat, size = transacciones),
+               color = "orange",
+               alpha = .5) +
+    geom_sf(data = bares_y_cafes,
+            color = "darkblue",
+               alpha = .3,
+            size = .1) +
+    geom_sf(data = bares_y_cafes_cluster_catchment_area,
+            fill = NA,
+            alpha = .8,
+            color = "darkblue") +
+   geom_sf_label(data = bares_y_cafes_cluster_catchment_area,
+              aes(label = cluster), 
+              size = 1.5,
+              alpha = .5,
+              nudge_x = .02)
+
+```
+
+```{r procesarParques}
+parques <- espacios_verdes_detalle %>% 
+  filter(nombre != "Gral. Paz") %>% 
+  filter(area > 20000) %>%  # Sweet spot
+  mutate(escala = case_when(area > 4000000 ~ "Regional",
+                            area > 600000  ~ "Metropolitana",
+                            area > 200000  ~ "Distrital",
+                            TRUE           ~ "Local"),
+         escala = factor(escala,
+                         levels = c("Local", "Distrital", 
+                                    "Metropolitana", "Regional"),
+                         ordered = T))
+
+catchment_area <- function(escala, geometry) {
+  
+  buffer_en_m <- function(geometry, metros) {
+    
+    geometry %>%
+      st_sfc(crs = 4326) %>% 
+      st_transform(5348) %>% # POSGAR 2007 / Argentina 6
+      st_buffer(metros) %>% 
+      st_transform(4326) %>% 
+      data.frame() %>% 
+      st_sf
+  }
+  
+  if (escala == "Local") {
+    buffer_en_m(geometry, 256)
+    } else if (escala == "Distrital") {
+      buffer_en_m(geometry, 512) 
+      } else if (escala == "Metropolitana") {
+        buffer_en_m(geometry, 768) } else
+          NULL
+}
+
+parques_catchment <- parques %>% 
+  select(escala, geometry) %>% 
+  pmap(catchment_area) %>% 
+  reduce(rbind) %>% 
+  summarise() %>% 
+  mutate(parque = TRUE)
+
+
+```
+
+Para determinar la presencia de parques y otros espacios verdes públicos recreativos, se recurrió al _dataset_ de Espacios Verdes[^notaEspVerdes] publicado por el Gobierno de la Ciudad en su Portal de Datos Abiertos.
+
+[^notaEspVerdes]: "Límites y ubicación geográfica de los espacios verdes de la Ciudad (jardín, parque, patio recreativo, plaza, plazoleta, cantero y polideportivo)", https://data.buenosaires.gob.ar/dataset/espacios-verdes
+
+El _dataset_ incluye los límites de `r nrow(nrow(espacios_verdes_detalle))` espacios públicos, con superficies que van desde 0,3 a más de dos millones de hectáreas. Se buscó identificar aquellos espacios que, por potencial recreativo, resulten un destino atractivo para quienes viven en otras zonas de la ciudad. Para ello se recurrió a las categorías detallados en el Plan Urbano de Londres de 2016. Allí se identifica en hectáreas el umbral a partir del cual un espacio verde se puede considerar como parque, "proveyendo campos de juego, juegos infantiles, áreas para sentarse y de conservación natural."[^NotaGIGL]. De acuerdo a la misma clasificación, en la Ciudad de Buenos Aires se hallan parques de importancia local (más de 2 ha), distrital (más de 20 ha), y metropolitana (más de 60 ha) según muestra la Figura \@ref(fig:plotParques).
+
+Para cada parque se calculó un área de captura o _catchment area_ de acuerdo a su superficie: 256 metros (dos cuadras) para los locales, 512 (4 cuadras) para los distritales, y 768 metros, o 6 cuadras, para los de escala metropolitana.
+
+[^NotaGIGL]:"Greenspace Information for Greater London CIC. Public Open Space Categories", https://www.gigl.org.uk/open-spaces/public-open-space-categories/
+
+
+```{r plotParques, fig.cap="Parques en la Ciudad, clasificados por en rango de importancia de acuerdo a su superficie, y su 'catchment area'"}
+
+mapabase + 
+  geom_sf(data = parques,
+          alpha = .7, 
+          color = NA,
+          aes(fill = escala)) +
+   geom_point(data = transacciones_geo %>% 
+               group_by(Comercio, lon, lat) %>% 
+               summarise(transacciones = n()), 
+               aes(x = lon, y = lat, size = transacciones),
+               color = "orange",
+               alpha = .5) +
+  geom_sf(data = parques_catchment,
+          alpha = .7,
+          fill = NA) +
+  scale_fill_brewer(palette = "YlGn") +
+  labs(fill = "espacio verde\n(jerarquía)")
+
+
+
+```
+
+Respecto a las vías peatonales de tradición comercial, para el análisis se incorporó la traza de las dos calles que en Buenos Aires cumplen ese rol: Lavalle, y Florida (ésta última toma el nombre de Perú en su tramo sur). Al comparar en un mapa la ubicación de las peatonales respecto al de la oferta del Programa, se observa que no existen opciones para el uso del pase en las cercanías de éstas calles (Figura \@ref(fig:plotPeatonales)).
+
+Se realizó un modelo de regresión lineal con cantidad de transacciones por sitio de oferta como variable dependiente, y un conjunto de variables independientes conformado por rubro del sitio, su cercanía a parques, su cercanía a _clusters_ de bares y cafes, y su cercanía a vías peatonales comerciales. En todo los casos, la cercanía se operacionalizó como una variable binaria que indica si el sitio de oferta se encuentra dentro del área de captura de parques, _clusters_ o peatonales.
+
+El modelo no muestra correlaciones con significancia estadística, por lo cual se mantiene sin rechazar la hipótesis nula: la preferencia de los beneficiarios no se ve influida por la cercanía de la oferta a las _amenities_ consideradas.
+
+```{r plotPeatonales, fig.cap="Sitios de oferta del pase, con cantidad de transacciones registradas (izq.). Calles peatonales de la ciudad que funcionan como ejes de actividad comercial, y área de captura considerada para el análisis (der.)"}
+
+peatonales <- st_read("../entregables/data auxiliar/callejero/calles_peatonales.geojson", 
+                  quiet = TRUE)
+
+peatonales_catchment <- peatonales %>%
+  summarise() %>% 
+  st_transform(5348) %>% # POSGAR 2007 / Argentina 6
+  st_buffer(256) %>% 
+  st_transform(4326) %>% 
+  mutate(peatonal = TRUE)
+
+
+izq <- mapabase +
+  geom_sf(data = peatonales,
+          alpha = .7, 
+          size = 2, 
+          aes(color = Calle)) +
+  geom_point(data = transacciones_geo %>% 
+               group_by(Comercio, lon, lat) %>% 
+               summarise(transacciones = n()), 
+               aes(x = lon, y = lat, size = transacciones),
+               color = "orange",
+               alpha = .5) +
+  guides(color = FALSE) +
+  theme(legend.position="bottom")
+  
+
+der <- mapabase +
+  geom_sf(data = peatonales,
+          alpha = .7, 
+          size = 1.5, 
+          aes(color = Calle),
+          show.legend = "line") +
+  geom_sf(data = peatonales_catchment,
+          alpha = .7,
+          size  = 1.3,
+          color = "rosybrown2",
+          fill = NA) + 
+  geom_point(data = transacciones_geo %>% 
+               group_by(Comercio, lon, lat) %>% 
+               summarise(transacciones = n()), 
+               aes(x = lon, y = lat, size = transacciones),
+               color = "orange",
+               alpha = .5) +
+  labs(color = "peatonal") +
+  coord_sf(xlim = c(-58.386, -58.352), 
+           ylim = c(-34.615, -34.590), 
+           expand = FALSE) +
+  guides(size = FALSE) +
+  theme(legend.position="bottom")
+
+izq + der
+
+```
+
+```{r eval=FALSE}
+
+# NO SE ENCENTRA NADA SIGNIFICATIVO
+
+datos_modelo_hedonico <- transacciones_geo %>% 
+  group_by(Comercio, Rubro, lon, lat) %>% 
+  summarise(transacciones = n()) %>% 
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
+  st_join(bares_y_cafes_cluster_catchment_area) %>% 
+  mutate(cluster = ifelse(is.na(cluster), "0", cluster)) %>% 
+  st_join(parques_catchment) %>% 
+  st_join(peatonales_catchment) %>% 
+  mutate(parque = ifelse(is.na(parque), FALSE, parque),
+         peatonal = ifelse(is.na(peatonal), FALSE, peatonal))
+
+modelo_hedonico <- lm(transacciones ~ Rubro + cluster + parque + peatonal,
+                      datos_modelo_hedonico)
+
+summary(modelo_hedonico)
+```
+
+### Ciudad formal vs. informal
+
+#### Evaluación de la hipótesis: los alumnos con domicilio en asentamientos precarios céntricos consumen más que aquellos residentes en la periferia
+
+Para evaluar diferencias en el consumo de oferta cultural entre beneficiarios domiciliados en asentamientos precarios, se realizó una clasificación entre asentamientos _céntricos_ y _periféricos_. La clasificación fue arbitraria, en el sentido de que no existe una categorización oficial. Se tomaron como céntricos aquellos asentamientos ubicados en cercanía a la aglomeración de sitios de oferta cultural de la Ciudad (Figura \@ref(fig:plotAsentamientos)). 
+
+```{r plotAsentamientos, fig.cap="Asentamientos precarios donde se domicilian beneficiarios del Pase Cultural. Para dar contexto se muestran líneas de metro (en gris) y sitios de oferta cultural (en amarillo)"}
+
+# En los datos aparecen bajo "nom__asentamiento" nombres de barrios que no son asentamientos precarios, sino complekos habitacionales (a donde llegan servicios): Barrio Espora, Barrio Los Perales
+asentamientos_georef <- read_csv("../entregables/data auxiliar/asentamientos/georef_asentamientos_precarios.csv")
+
+subte <- st_read("../entregables/data auxiliar/subte/lineas-subte.shp", 
+                  quiet = TRUE)
+
+mapabase +
+  geom_sf(data = subte, color = "cornsilk4", size = 1.2) +
+    geom_point(data = distinct(select(transacciones_geo, 
+                                      Comercio, lon, lat)), 
+               aes(x = lon, y = lat),
+               color = "orange",
+               size = 3,
+               alpha = .5,
+               shape = 18,
+               ) +
+  geom_point(data = unique(select(asentamientos_georef, 
+                                  lat, lon, asentamiento, emplazamiento)),
+             aes(x = lon, y = lat, color = emplazamiento),
+             size = 5, alpha = .3) +
+  geom_point(data = asentamientos_georef,
+             aes(x = lon, y = lat, color = emplazamiento),
+             size = 5, shape = 1) +
+  scale_color_brewer(palette = "Set1") +
+  labs(color = "asentamiento")
+  
+
+
+```
+
+Con el fin de contar con datos suficientes como para discernir tendencias, se seleccionaron sólo aquellos asentamientos precarios que presentan al menos 10 usuarios activos, para los cuales se calculó el número de beneficiarios inscriptos, cuántos entre ellos han hecho uso de pase, y el promedio de uso por persona según registra el Cuadro \@ref(tab:tablaAlumnosAsentamientos).
+
+```{r tablaAlumnosAsentamientos}
+tx_alumno_asentamiento <- transacciones %>% 
+  rename(num__docum = "Nro_Doc") %>% 
+  group_by(num__docum) %>%
+  summarise(freq = n()) %>% 
+  full_join(select(alumnos, num__docum, nom__asentamiento, origen_alta)) %>% 
+  mutate(freq = ifelse(is.na(freq), 0, freq)) %>% 
+  left_join(asentamientos_georef) %>% 
+  filter(!is.na(emplazamiento))
+
+
+tx_asentamiento <- tx_alumno_asentamiento %>% 
+  group_by(asentamiento) %>% 
+  summarise(consumo_percapita = sum(freq)/n(),
+            beneficiarios = n(),
+            pct_autogestionados = sum(origen_alta == "Autogestión")/
+              beneficiarios,
+            activos = sum(freq > 0),
+            emplazamiento = last(emplazamiento))
+
+
+tx_asentamiento %>% 
+  filter(activos > 10) %>% 
+  arrange(desc(beneficiarios)) %>% 
+  transmute(asentamiento,
+            emplazamiento,
+            beneficiarios,
+            `usuarios activos` = activos,
+            `usuarios activos (%)` = round(activos / beneficiarios, 2),
+            `usos del Pase por beneficiario (promedio)` = round(consumo_percapita, 2)) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Difusión y uso del Pase Cultural entre beneficiarios con domicilio en asentamiento precario.") %>%
+  kable_styling(latex_options = c("striped", "scale_down")) %>% 
+  footnote(general = "Sólo se consideran asentamientos con más de 10 usuarios activos",
+           general_title = "Nota: ")
+  
+
+```
+
+Del análisis se desprende que los beneficiarios domiciliados en el asentamiento precario céntrico no exhiben una frecuencia mayor de consumo, ni una tasa más alta de beneficiarios inscriptos que se convierten en usuarios activos, aun teniendo el porcentaje de beneficiarios autogestionados más alto del grupo -un 39% a la fecha de análisis. (Figura \@ref(fig:plotDiferenciaAsentamientos)).   
+
+```{r plotDiferenciaAsentamientos, fig.cap="promedio per cápita de usos del pase por cantidad de beneficiarios inscriptos(izq.), porcentaje de beneficiarios inscriptos que se transforman en usuarios activos (der.). La ubicación central del asentamiento no evidencia mayor frecencia de uso entre sus residentes."}
+  
+izq <- tx_asentamiento %>% 
+  filter(activos > 10) %>% 
+  mutate(asentamiento = fct_reorder(asentamiento, consumo_percapita)) %>%
+  ggplot() +
+  geom_col(aes(x = asentamiento, y = consumo_percapita, fill = emplazamiento)) + 
+  scale_fill_brewer(palette = "Set1") +
+  coord_flip() +
+  theme_minimalista +
+  labs(y = "usos del Pase por usuario (promedio)", x = NULL) +
+  guides(fill = FALSE)
+
+der <- tx_asentamiento %>% 
+  filter(activos > 10) %>% 
+  mutate(tasa_activos = activos / beneficiarios) %>% 
+  mutate(asentamiento = fct_reorder(asentamiento, tasa_activos)) %>% 
+  ggplot() +
+  geom_col(aes(x = asentamiento, y = tasa_activos, fill = emplazamiento)) +
+  scale_y_percent() + 
+  scale_fill_brewer(palette = "Set1") +
+  coord_flip() +
+  theme_minimalista +
+  labs(y = "beneficiarios activos (%)", x = NULL) 
+
+
+izq + der
+```
+
+### Género
+
+Para el análisis de consumo por género, se analizó la cantidad de beneficiarios inscriptos, por origen de alta (Cuadro \@ref(tab:tablaAlumnosGenero)). Se observa que las mujeres son mayoría en todas las categorías: entre quienes se inscribieron al programa en un evento público, entre quienes se inscribieron en el marco de una visita promocional a escuelas y -en aún mayor medida- entre aquellos beneficiarios que se dieron de alta en el Programa por iniciativa propia. Esta predominancia femenina en todas las categorías sugiere que las mujeres son un público de mayor receptividad a la promoción cuando se ofrece inscripción al programa, y también demuestran mayor interés espontáneo, como inscriptas por _motu propio_.
+
+```{r tablaAlumnosGenero}
+alumnos %>% 
+  group_by(Sexo = sexo, origen_alta) %>% 
+  summarise(cantidad = n()) %>% 
+  spread(key = origen_alta, value = cantidad) %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Distribución de beneficiarios según sexo y origen del alta") %>%
+  kable_styling(latex_options = c("striped")) %>% 
+  footnote(general = "obsérvese mayoría de mujeres en todas las categorías, y en particular en el alta autogestionada",
+           general_title = "Nota: ")
+
+```
+
+#### ¿Existen diferencias en los patrones de acceso a la oferta cultural de acuerdo al género de los beneficiarios?
+
+Es interesante destacar que, entre aquellos beneficiarios activos -es decir, entre los inscriptos que hacen uso de su Pase- el consumo promedio es similar entre hombres y mujeres, en todos os rubros. Sin embargo, las mujeres vuelven a resaltar al observar los valores extremos: son mayoría entre los usuarios que se destacan por su uso frecuente, como se evidencia en la Figura \@ref(fig:plotDiferenciasConsumoSexo) 
+
+
+```{r plotDiferenciasConsumoSexo, fig.cap="Cantidad de veces que cada beneficiario consumió oferta, por rubro. Si bien el consumo medio es similar, para los rubros más consumidos -cine, librería y librería artística- se observa que los usuario de mayor frecuencia son mujeres."}
+
+
+tx_alumno_genero <- transacciones %>% 
+  rename(num__docum = "Nro_Doc") %>% 
+  group_by(Rubro, num__docum) %>%
+  summarise(freq = n()) %>% 
+  full_join(select(alumnos, num__docum, sexo, decil_NSE))
+
+# Preparando para plotear
+tx_alumno_genero <- tx_alumno_genero %>% 
+  filter(sexo %in% c("Femenino", "Masculino"),
+         !is.na(Rubro)) %>%
+  mutate(top3 = ifelse(rank(desc(freq)) < 4, TRUE, FALSE)) 
+
+
+  ggplot() +
+  geom_jitter(data = filter(tx_alumno_genero, !top3),
+              aes(x = Rubro, y = freq, color = sexo), 
+              alpha = .5, height = 0) +
+  geom_jitter(data = filter(tx_alumno_genero, top3),
+              aes(x = Rubro, y = freq, color = sexo), 
+              alpha = .5, width = 0) +
+  geom_text(data = filter(tx_alumno_genero, top3),
+            aes(x = Rubro, y = freq, 
+                label = freq, color = sexo), 
+            key_glyph = draw_key_point,
+            hjust = -.5, na.rm = TRUE) +
+  scale_color_ipsum() +
+  labs(x = NULL, y = NULL, color = "sexo") +
+  theme(legend.position="bottom",
+        axis.ticks.x=element_blank()) +
+  theme_minimalista +
+  theme()
+```
+
+```{r top5consumidoresGeneroRubro}
+# No usado por ahora
+ranking_consumidores <- tx_alumno_genero %>% 
+  filter(!is.na(Rubro)) %>% 
+  arrange(Rubro, desc(freq)) %>% 
+  slice(1:5)
+```
+
+En cuanto a las distancias a pie o en transporte público que median entre domicilio y sitios de consumo, en general no se encontraron diferencias significativas. Los tiempos de viaje tienden a ser mayores entre los hombres, pero no por mucho, con la excepción del rubro "música", donde la diferencia es significativa. Esto podría indicar una mayor disposición de los varones para atravesar distancias mayores a la hora de acceder a oferta musical, pero la baja cantidad de casos no permite sacar conclusiones (Cuadro \@ref(tab:distanciaViajadaSexo))
+
+```{r distanciaViajadaSexo}
+# No se encuentram diferencias notables
+transacciones_geo %>% 
+  filter(sexo %in% c("Femenino", "Masculino")) %>% 
+   # filter(!is.na(Rubro)) %>% 
+    mutate(tiempo_domicilio = tiempo_domicilio / 60,
+           tiempo_institucion = tiempo_institucion / 60) %>%
+   group_by(Rubro, sexo) %>%
+    summarise("n" = n(),
+              "tiempo de viaje promedio" = round(mean(tiempo_domicilio, na.rm = TRUE)),
+              "tiempo de viaje máximo" = round(max(tiempo_domicilio, na.rm = TRUE))) %>% 
+    arrange(Rubro, `tiempo de viaje promedio`)  %>% 
+  knitr::kable(format = "latex", 
+               booktabs = T, 
+               align = "r", 
+               caption = "Tiempo de viaje (a pie y en transporte público) entre domicilio y oferta, según sexo y rubro cultural") %>% 
+  kable_styling(latex_options = c("striped")) 
+
+```
+
+
+#### Evaluación de la hipótesis: los varones tienen mayor predilección por actividades deportivas como alternativa a las culturales
+
+Durante el análisis preliminar de las transacciones de usuario del Pase se observo una frecuencia de uso mayor entre mujeres. Ello llevó a proponer hipótesis que explicaran la diferencia. Entre ellas, la posibilidad de que los varones tuvieran un más fácil acceso al espacio público como ambiente para actividad física, a diferencia de las mujeres para quienes esa opción no es tan deseable o accesible, decantándose en cambio por actividad cultural.
+
+La encuesta del Pase Cultural indagó sobre las preferencias para pasar el tiempo libre de los participantes. Ello permitió cuantificar el efecto de diversos factores en la elección de la actividad física por encima del consumo de oferta cultural. Se realizó un modelo logarítmico para estimar el efecto de género, edad, barrio de domicilio y tipo de escuela a la que se asiste.
+
+```{r modeloPreferenciaSalidas}
+preferencias_salidas <- respuestas %>% 
+  transmute(edad, genero, barrio, escuela_en_CABA,
+            prefiere_actividad_fisica = ifelse(opcion_salidas_1 == "Deporte / actividad física", 
+                                      1, 
+                                      0))
+  
+modelo_preferencia_salidas <- glm(data = preferencias_salidas,
+                                  prefiere_actividad_fisica ~ genero + 
+                                    edad + barrio + escuela_en_CABA,
+                      family = "binomial")
+```
+
+Controlando por todas esas variables, se halló que -comparando con mujeres con la misma edad, domicilio y escuela- los varones tienden a preferir la actividad física antes que la oferta cultural en proporción `r signif(exp(modelo_preferencia_salidas$coefficients["generoChico"]), 2)` a 1. Ninguna otra variable resultó estadísticamente signifcativa, con la notable excepción de la categoría "No asiste a la escuela en CABA". Para quienes no cursan estudios en la Ciudad, la proporción en que prefieren la actividad física antes que la cultural es de `r signif(exp(modelo_preferencia_salidas$coefficients["escuela_en_CABANo estudia en CABA"]), 2)` a 1 (Cuadro \@ref(tab:cuadroModeloPreferenciaSalidas)) 
+
+
+```{r cuadroModeloPreferenciaSalidas}
+modelo_preferencia_salidas %>%
+  broom::tidy() %>%
+  format_model_table() %>%
+  select(term, estimate, p.value) %>%
+  set_names(c("variable", "efecto", "p-valor")) %>%
+  filter(variable %in% c("constante", "generoChico", "generoOtra categoría",
+                         "edad",
+                         "escuela_en_CABAMedia",
+                         "escuela_en_CABANo estudia en CABA",
+                         "escuela_en_CABANormal",
+                         "escuela_en_CABAParroquial",
+                         "escuela_en_CABAPrivada",
+                         "escuela_en_CABATécnica" )) %>% 
+  mutate(variable = c("constante", "sexo - masculino", "sexo - otra categoría",
+                      "edad",
+                      "escuela: Media",
+                      "escuela: No asiste en CABA",
+                      "escuela: Normal",
+                      "escuela: Parroquial",
+                      "escuela: Privada",
+                      "escuela: Técnica")) %>%
+  mutate(`multiplicador de chances` = round(exp(as.numeric(efecto)), 2)) %>%
+  knitr::kable(format = "latex",
+               booktabs = T,
+               align = "r",
+               caption = "Factores que correlacionan con preferencia por actividad física vs. consumo de cultura. ") %>% 
+  kable_styling(latex_options = c("striped")) %>% 
+  footnote(general = "El modelo también considera barrio de domicilio, no mostrado aquí por representar decenas de categorías sin efecto significativo",
+           threeparttable = T,
+           general_title = "Regresión lineal (resumen). Nota: ")
+
+```
+
+
+\pagebreak
+
+# Conclusiones
+
+## Recomendaciones para el Programa Pase Cultural
+
+Al momento de sugerir cursos de acción para profundizar los efectos deseados para el Programa, se siguieron los lineamientos de los tres ejes principales de acción que estructuraron su diseño.
+
+- __Acceso__. Permitir a los beneficiarios del Pase descubrir y elegir variadas actividades culturales, incluso aquellas a las que no optaban por desconocimiento, por no considerarse parte de su audiencia, o por el costo de la entrada.  
+
+- __Transformación__. Empoderar a los jóvenes y fomentar su participación ciudadana cultural.
+
+- __Desarrollo.__ Acercar a los beneficiarios a diferentes industrias creativas, permitiéndoles incorporar hábitos de consumo cultural más variado. A la vez, permitir a las industrias conocer mejor los gustos y expectativas de una audiencia tan dinámica como la conformada por los beneficiarios del Pase, para mejorar y fortalecer su oferta. Como resultado se espera un incremento del desarrollo cultural, generando más empleo y más oferta.
+
+Cabe aclarar que los hallazgos aquí relevados se han basado en el análisis de las transacciones registradas por el sistema bancario asociado al Pase Cultural, y por tanto reflejan el consumo de la oferta provista por terceros: las empresas culturales  asociadas al Programa. Las opciones provistas por Instituciones de la Ciudad (como museos y teatros públicos) operan bajo otra lógica al no requerir "compra" por parte de los beneficiarios, y su consumo no queda contabilizado en las transacciones. Por tanto esta oferta en particular no ha sido cuantificada, y no informa las recomendaciones que siguen.
+
+### Recomendaciones para el Eje de Acceso
+
+1. El programa alcanza a beneficiarios en todos los barrios de la CABA (representados en escuelas en la figura 9), sin embargo la oferta se concentra en la zona más desarrolladas y céntricas de la ciudad (figura 7). Dada la distribución de los grupos socioeconómicos en CABA (figura 4), esto conlleva a que los alumnos tiendan a encontrar mayor distancia entre sus hogares y los sitios de cultura cuanto menor es el nivel socioeconómico de su entorno (sección 3.1.4., Distancia a oferta, figura 8).
+
+    a. Para compensar la situación podría considerarse un Pase combinado, que permita tanto la compra de productos y servicios culturales como la adquisición de  pasaje en transporte público. Una integración con la tarjeta SUBE Estudiantil cumpliría esta función para aquellos estudiantes elegibles. Se podrían agregar algunos viajes sin cargo adicionales a los 50 permitidos por la SUBE, para permitir traslados hasta la oferta cultural además de hasta la escuela[^notaSUBE].
+    
+    b. O bien, podría llevarse oferta cultural a Barrios periféricos de la CABA y promocionar dichas actividades directamente a la base de datos del pase georeferencialmente. Otros programas han atendido la descentralización con oferta cultural esporádica, el concepto de transporte resultaría más eficiente para los propósitos de diversificación continua del consumo. El uso de un mapa con la oferta del Pase Cultural actualizada (contabilizada por butacas/tickets disponibles) permitiría visualizar la oferta de una forma más fácil y efectiva y dirigir las negociaciones con prestadores de servicios que se sumen al programa según su ubicación. El mapa “promotor” podría ser integrado dentro el portal dedicado al Pase Cultural en la plataforma DisfrutemosBA.[^notaDisfrutemosBA].
+    
+    c. El pase cultural también podría facilitar repensar sus formatos con accesos vía _streaming_[^notaStreaming], en puntos simultáneos de la ciudad (parques, etc), de modo similar a los eventos transmisión de eventos deportivos o ciclos de cine al aire libre que la Ciudad ya ha ofrecido. Logísticamente desafiante, puede tener un efecto positivo inmediato y medible en el acceso a una oferta cultural diversificada. Esto permitiría que otras actividades se ofrezcan con la capacidad simultánea que actualmente sólo tiene el cine. Asimismo, el Programa podría asociarse con salas de cine para aprovechar la distribución estratégica y rotar espectáculos diversos en sus salas.
+
+[^notaSUBE]: https://boletoestudiantil.buenosaires.gob.ar/
+[^notaDisfrutemosBA]: https://disfrutemosba.pasecultural.buenosaires.gob.ar
+[^notaStreaming]: Con audio en simultáneo, para la sensación “en vivo”
+
+2. La Encuesta realizada en el marco de la evaluación del Programa indica que, después del Cine, la asistencia a Música en vivo es la salida cultural preferida entre los jóvenes de 14 a 18 años de edad, encuestados durante eventos culturales (sección 3.4.1., Preferencia para el empleo del tiempo libre. “Salir” a consumir oferta cultural, vs. actividad deportiva, vs. lectura.). Por otro lado, entre las transacciones del Pase Cultural se encuentra casi nula actividad en la categoría "Música", representada por algunas tiendas de venta de discos. Es posible que la poca convocatoria de la opción se deba a patrones de consumo no atendidos: si los jóvenes acceden con facilidad a un enorme oferta de música grabada vía internet, es posible que su interés por adquirir música en CDs u otros formatos físicos sea limitada. Se puede especular entonces con que el potencial de la música como actividad se realizaría al habilitar la adquisición de entradas para asistir a eventos en vivo.
+
+3. La alta concentración de datos en los meses finales de análisis nos permite recomendar el análisis de datos del segundo semestre 2019 para orientar de mejor forma las recomendaciones y comprender si la diversificación del consumo toma lugar en el tiempo. En este sentido, proponemos realizar una etapa de  análisis adicional, integrando datos actualizados y realizada aprovechando la experiencia ya obtenida durante el presente evaluación.
+
+4. Es posible que las campañas de inscripción tengan una influencia positiva y relevante en el uso activo de la tarjeta. Aún así, menos de un 20% de los usuarios inscriptos durante visita a escuelas ha hecho uso de su Pase (Cuadro X). Este fenómeno incide especialmente en aquellos inscriptos en Villas o asentamientos informales, que no harían mayormente uso activo del programa. En base a ello, se recomienda realizar la segunda fase del estudio comisionado a la Universidad Torcuato di Tella, el cual ya obtuvo encuestas que midieron una línea de base respecto a preferencias y actitudes de estudiantes hacia la oferta cultural. Al llevarse a cabo una nueva ronda de encuestas a los mismos estudiantes, que en el ínterin han obtenido su Pase Cultural, podría cuantificarse el aumento en el nivel o variedad de consumo atribuible al uso del Pase. 
+
+5. Continuando con el punto anterior, el mayor desafío que enfrenta el Pase respecto a impulsar el acceso a la cultura entre sus inscriptos es aumentar la cantidad de usuarios activos.  Incluso entre los beneficiarios autogestionados, que tienen una tasa de conversión considerablemente mayor a la de los jóvenes inscriptos en eventos y visitas, sólo un 30% utilizó su Pase al momento del análisis. Se podría profundizar de seguimiento de los inscriptos explorando distintas alternativas -como distintas consignas enviadas a modo de "recordatorio" al correo o celular, o avisos de novedades- para alentarlos a hacer uso de su Pase 
+
+6. Para identificar barreras de acceso relacionadas con el lugar de vivienda, podrían identificarse los radios en torno a la oferta disponible que señalan el territorio cubierto a distancia caminable (por ejemplo, 30' a pie). Al analizar las zonas de la ciudad sin cobertura, se detectarían las áreas donde se requiere sumar nueva oferta. 
+
+7. El Pase cultural no estaría asociado al uso de los espacios verdes u otros espacio públicos de calidad de la ciudad. La distancia entre ambas amenities no permitiría un uso combinado evidente (figura 25). Tal como lo hacen las plataformas de Airbnb, o similar, la transacción del Pase en un establecimiento podría incluir una recomendación de visita a oferta diversa -pública y gratuita- en el entorno inmediato. 
+
+
+### Recomendaciones para Eje de Transformación
+
+1. De los resultados de la Encuesta se desprende que los jóvenes varones que respondieron priorizan la actividad física o deportiva sobre opciones relacionadas a la cultura como la lectura o la salida a cines, teatros y museos. Entre las mujeres la opción elegida con más frecuencia como favorita para el tiempo libre fue la salida a actividades culturales. Además, la preferencia por la lectura, fue mayor entre mujeres que entre varones (sección 3.4.1., Preferencia para el empleo del tiempo libre. “Salir” a consumir oferta cultural, vs. actividad deportiva, vs. lectura.). Esto sugiere la posibilidad de incluir en el diseño comunicacional un mensaje que refuerce el atractivo de la oferta cultural frente a espacios tradicionales de recreación masculina. 
+
+2. Entre las opciones de salida cultural ofrecidas en la Encuesta, que también incluyeron Cine y Música en vivo, las dos categorías de menor interés para los jóvenes encuestados fueron Teatro/Danza y Museo/Galería, por gran margen (3.4.2., Actitud frente a distintos tipos de oferta cultural (cine, música, teatro, galerías). Entre las razones por las cuales eligieron alguna de esas dos categorías en último orden de preferencia, la principal razón fue la misma para ambas: "No me gusta/No me divierte”. El principal motivo por el cual los jóvenes evitan esas actividades no sería entonces el desconocimiento de sus características y sitios de oferta, sino una percepción negativa. Para animar a los beneficiarios a expandir sus horizontes, el programa podría promocionar de forma diferencial estas actividades, y/o diseñar un mensaje que realce su atractivo. O bien, integrar en la currícula o en modalidad de actividad extracurricular de la Escuela  actividades diseñadas para público joven relacionadas a las categorías de Teatro, Danza y Museo, costeadas vía Pase Cultural. 
+
+3. Entre los pocos participantes de la encuesta que eligieron Cine como la categoría de menor interés, la principal razón indicada fue "Es caro" (3.4.2., Actitud frente a distintos tipos de oferta cultural (cine, música, teatro, galerías)). Esto sugiere que el Pase está funcionando -exitosamente- como reductor de la principal barrera de acceso al Cine para los jóvenes, el costo. Por otro lado, el Cine representa una cantidad tan predominante de transacciones del Pase, comparadas con las de todos las demás rubros, que se presenta la oportunidad de usarlo como "palanca" para incentivar el consumo de las alternativas menos buscadas. Por ejemplo, podría habilitarse la adquisición de un par de entradas adicionales al mes para aquellos que usen su pase para acceder a un evento teatral, exposición de arte, u otro evento cultural a promover. 
+
+4. Un aspecto relevante de la evaluación, que es el del uso del Pase como parte de una actividad grupal, no pudo ser analizado debido a que los registros de transacciones recibidos no contienen más detalle temporal que el del día en que ocurrieron. El no contar con hora exacta impide identificar cuando los beneficiarios lo usan en grupo, registrando transacciones de sus Pases a la vez en el mismo lugar. Se recomienda entonces continuar los esfuerzos para obtener del Banco Ciudad la información temporal completa (con detalle de hora y minutos) de los registros.
+
+5. Se recomienda atender el caso de los varones, orientando la promoción para lograr un mayor balance de género en inscripción y uso intensivo del pase. Se puede poner en valor la auto-gestión femenina e invitar directamente a los chicos en las campañas de inscripción. El algoritmo que premia el uso se consideraría un gran incentivo. Es decir, con usos bajos o nulos se reduce el presupuesto para el mes siguiente y se premia un uso pleno con  mayor presupuesto, por redistribución interna de fondos. 
+
+
+### Recomendaciones para Eje de Desarrollo
+
+1. La oferta cultural accesible a través del pase se localiza en las zonas desarrolladas de la ciudad (sección 3.1.4., Distancia a oferta). Podría considerarse un relevamiento de nuevas opciones enfocado en aquellos barrios de menor desarrollo económico. Los esfuerzos en ese sentido podrían realizarse en colaboración con la Corporación Buenos Aires Sur[^notaCBAS] u otras áreas del GCBA dedicadas al desarrollo territorial del Sur de la Ciudad.
+
+[^notaCBAS]: https://www.buenosaires.gob.ar/corporacionsur
+
+2. Los patrones de consumo encontrados indican una muy concentrada preferencia de los beneficiarios por el cine (dos tercios del total de transacciones se concentraron sólo en ese rubro), y en menor medida, los productos de librería -que representa casi un 30% del total. En pos del objetivo de impulsar la Economía Creativa de la Ciudad, y sus diversos sectores, se sugiere explorar ajustes al diseño del Programa para promover una mayor diversificación del consumo.
+La reiteración de compras concentradas en cine fue resuelta para la versión francesa del Pase Cultural, limitando las posibilidades de los usuarios a la no repetición. __“El algoritmo de la aplicación francesa ... propondrá productos y servicios diametralmente opuestos a los que el consumidor haya escogido previamente, en lugar de insistir en otros parecidos. [...] El pase cultural tiene la ambición de construir un modelo contrario, que acompañe a los usuarios hacia una ampliación de sus preferencias y gustos”__[^notaElPais]. Las estrategias de promoción orientadas a ampliar los horizontes de los beneficiarios podrían integrarse con el sistema de seguimiento de inscriptos mencionado para el Eje de Acceso.
+
+[^notaElPais]: https://elpais.com/cultura/2019/02/10/actualidad/1549824741_995515.html
+
+
+3. Al momento, el Programa se enmarca bajo la modalidad de "subsidio a la demanda", proveyendo fondos a los beneficiarios para así otorgarles los medios necesarios para consumir la oferta cultural de su preferencia. Como mecanismo para impulsar la Industria Cultural local, se podría considerar agregar una iniciativa de subsidio a la oferta, dedicado a los sitios de actividad cultural. Éstos podrían recibir crédito, exenciones impositivas, u otras formas de subsidio (por ejemplo apoyo logístico y espacio concedido en eventos del Gobierno) a cambio del desarrollo de propuestas orientadas al público del Pase.
+
+
+## Implicaciones generales para políticas públicas
+
+Por su capacidad de alentar la visita de los beneficiarios a distintas zonas de la ciudad, y sus miras de colaborar con el desarrollo del sector económico de servicios, el Programa Pase Cultural evidencia potencial como herramienta de apoyo a políticas de integración socioterritorial, ayudando a reducir la brecha existente entre las zonas desarrolladas de la ciudad y las más vulnerables. 
+
+En particular, el Programa podría articularse con las iniciativas de impulso al desarrollo del Sur de la ciudad, considerada área primordial de intervención por el Plan Territorial Buenos Aires 2010/2060. Por sus características, el Pase Cultural se presenta como perfectamente complementario a políticas de desarrollo localizado como la creación del Distrito de las Artes en el barrio de La Boca y sectores de San Telmo y Barracas, el Distrito del Diseño en Barracas. También podría dialogar con el Distrito Tecnológico en los barrios de Boedo, Parque de los Patricios y Pompeya, en torno a oferta cultural que haga uso de tecnologías emergentes.
+
+Por otra parte, las técnicas analíticas desarrolladas con el fin de evaluar al Programa (código, flujo de trabajo, tests, etc) pueden ser reutilizadas para la evaluación de políticas públicas donde se deba tratar con datos georeferenciados, tanto en Cultura como en otras áreas del GCABA (salud, educación, etc) 
+
+Junto al presente reporte se hace entrega del código fuente utilizado para automatizar el procesamiento, análisis y visualización de los datos utilizado para la evaluación. El mismo ha sido organizado de modo de permitir la verificación y reproducción de los resultados del análisis, y del mismo modo actualizar el reporte mediante el reemplazo de los datos originales por una versión con registros adicionales obtenidos a posteriori.
+Se entrega también un conjunto de archivos de datos y configuración, así como un instructivo de puesta en marcha, para acceder a un Sistema de Información Geográfica con interfaz gráfica basado en Software Libre. Éste facilitará a sus usuarios la visualización y análisis de los datos generados por el Pase Cultural mediante el uso de una interfaz gráfica.
+
+
+\pagebreak
+
+# Futuras líneas de investigación
+
+\pagebreak
+
+# Entregables
+
+## Bases de datos 
+
+Diversas bases de datos han sido compiladas como insumos de análisis. Algunas son el resultado de la corrección, extensión y cruce de registros provistos por áreas del GCABA, mientras que otras (matrices de transporte publico, ubicación de espacios verdes, datos climáticos, etc) han sido producidas como parte del proyecto de evaluación.
+
+Todas ellas se hacen disponibles para uso futuro, en un archivo digital que se entrega junto al presente informe, dentro de la carpeta _entregables_
+
+
+## Código de programación utilizado
+
+El código de programación en lenguaje `R`[^footerR], requerido para reproducir el análisis en forma automática -desde la carga y limpieza de datos hasta la generación del reporte escrito- se hace disponibles para uso futuro como parte del archivo digital que se entrega junto al presente informe, en la carpeta _pase_cultural_R_code_.
+
+[footerR]: https://www.r-project.org/
+
+## Instructivo para la puesta en marcha de un Sistema de Información Geográfica (SIG) para futuro análisis
+
+A continuación se detallan los pasos a seguir para poner en marcha un Sistema de Información Geográfica, utilizando software libre e integrando los datos georeferenciados relacionados a la evaluación del Programa. AL ofrecer una interfaz gráfica de usuario, el sistema permitirá el aprovechamiento de la información generado durante el proceso de análisis sin requerir conocimientos de programación.
+
+1. Instalar el programa QGIS, disponible en forma gratuita en https://www.qgis.org/es/site/forusers/download.html
+
+2. Extraer el contenido del archivo que se entrega junto al informe en la computadora donde se instaló QGIS.
+
+3. En la barra de menús seleccionar "Project" o "Proyecto", y en el menú desplegable seleccionar "Open..." o "Abrir...". Navegar los directorios hasta la carpeta donde se extrajeron los archivos, buscar la sub-carpeta "GIS", y dentro de ella elegir el archivo _Analisis Pase Cultural.qgz_
+
+4. Con la información contenida en el archivo de proyecto abierto, QGIS identificará las capas geográficas contenidas en la carpeta entregada, y las presentará al usuario organizadas de manera tal que puedan ser exploradas y combinadas con nuevas fuentes de información.
+
+```{r echo=FALSE, out.width="100%", fig.cap="Interfaz gráfica de QGIS, con datos del Pase Cultural en pantalla"}
+knitr::include_graphics("../GIS/screenshots/project.png")
+```
+
