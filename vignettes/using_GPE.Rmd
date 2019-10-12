@@ -7,11 +7,15 @@ vignette: >
   \usepackage[utf8]{inputenc}
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
 ## Basic usage
 
 You'll need a .csv file containing program participant data, including at least columns "lon" and "lat", containing WG84 (Mercator) location coordinates.
 
-Example:
+## Example
 
 Having a "participants" dataframe such as
 
