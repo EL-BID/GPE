@@ -1,8 +1,8 @@
-# Evaluación Georreferenciada de Programas
+# Georeferenced Program Evaluation
 
-## Descripción and contexto
+## Description and context
 
-## Guía al usuario
+## User guide
 
 ## Install guide
 
@@ -12,12 +12,17 @@ Use:
     devtools::install_github("EL-BID/EGP")
 
 
-#### Dependencias
+#### Dependencies
 
-## Cómo contribuir
+GPE depends on the following packages:
 
-## Autores
+`ggmap`
+`sf`
 
-## Licencia 
+## Contributing
 
-## Limitación de responsabilidades
+## Authors
+
+## Licence
+
+## Liability
