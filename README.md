@@ -4,7 +4,13 @@
 
 ## Guía al usuario
 
-## Guía de instalación
+## Install guide
+
+Use:
+-----------
+    install.packages("devtools")
+    devtools::install_github("EL-BID/EGP")
+
 
 #### Dependencias
 
