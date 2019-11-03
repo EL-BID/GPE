@@ -2,7 +2,7 @@
 title: "Using GPE"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Put the title of your vignette here}
+  %\VignetteIndexEntry{Using GPE}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
@@ -13,11 +13,11 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 
 ## Basic usage
 
-You'll need a .csv file containing program participant data, including at least columns "lon" and "lat", containing WG84 (Mercator) location coordinates.
+You'll need tabular data with addresses, or "lon" and "lat" columns containing WG84 (Mercator) location coordinates. IE, a table with the addresses of schools were program beneficiaries attend, or a street or centroid identifying their neighboorhoods, or their home addresses -if using personal data is allowed.
 
 ## Example
 
-Having a "participants" dataframe such as
+Having a "participants" dataframe such as:
 
 ```{r}
 participants <- read.csv("../data/participants.csv")
