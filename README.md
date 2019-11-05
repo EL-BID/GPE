@@ -28,13 +28,13 @@ Having a "participants" dataframe such as
     participants <- read.csv("../data/participants.csv")
     head(participants)
 
-                |  participant_id   |  group    |   lon    |   lat income_bracket
-                |  control |-58.50748 |-34.64797             | 4
-                |treatment |-58.43973 |-34.60032             | 6
-                |treatment |-58.45209 |-34.55733             | 9
-                |treatment |-58.44180 |-34.58304             | 8
-                |control   |-58.50082 |-34.61289             | 4
-                |treatment |-58.50189 |-34.66374             | 1
+                participant_id     group      lon         lat          income_bracket
+                1                  control    -58.50748   -34.64797    4
+                2                  treatment  -58.43973   -34.60032    6
+                3                  treatment  -58.45209   -34.55733    9
+                4                  treatment  -58.44180   -34.58304    8
+                5                  control    -58.50082   -34.61289    4
+                6                  treatment  -58.50189   -34.66374    1
 
 
 And another dataframe containing the Program sites, such as:
