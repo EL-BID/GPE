@@ -6,10 +6,10 @@ Author: H. Antonio Vazquez Brust
 Maintainer: H. Antonio Vazquez Brust <avazquez@gmail.com>
 Description: This package provides functions for easy mapping and visualization of data related to public programs evaluation where location and distance matter
     Coming soon: shapefiles and Census data
-Depends: 
+Dependencies: 
     ggmap,
     sf
-Suggests: 
+Suggestions: 
     knitr, 
     rmarkdown
 VignetteBuilder: knitr
