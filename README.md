@@ -28,14 +28,13 @@ Having a "participants" dataframe such as
     participants <- read.csv("../data/participants.csv")
     head(participants)
 
-  |  participant_id   |  group    |   lon    |   lat income_bracket
----------------------------------------------------------------
-               1 |  control |-58.50748 |-34.64797             | 4
-               2 |treatment |-58.43973 |-34.60032             | 6
-               3 |treatment |-58.45209 |-34.55733             | 9
-               4 |treatment |-58.44180 |-34.58304             | 8
-               5 |control   |-58.50082 |-34.61289             | 4
-               6 |treatment |-58.50189 |-34.66374             | 1
+                |  participant_id   |  group    |   lon    |   lat income_bracket
+                |  control |-58.50748 |-34.64797             | 4
+                |treatment |-58.43973 |-34.60032             | 6
+                |treatment |-58.45209 |-34.55733             | 9
+                |treatment |-58.44180 |-34.58304             | 8
+                |control   |-58.50082 |-34.61289             | 4
+                |treatment |-58.50189 |-34.66374             | 1
 
 
 And another dataframe containing the Program sites, such as:
@@ -43,15 +42,13 @@ And another dataframe containing the Program sites, such as:
     locations <- read.csv("../data/locations.csv")
     head(locations)
 
-
- |  location_id | type   |   lon    |   lat
- ----------------------------------------------
-            1  |  A |-58.37705 |-34.62262
-            2  |  A |-58.38254 |-34.61850
-            3  |  A |-58.38409 |-34.61999
-            4  |  A |-58.39352 |-34.62451
-            5  |  A |-58.38914 |-34.62843
-            6  |  A |-58.39476 |-34.62932
+              |  location_id | type   |   lon    |   lat
+              |  A |-58.37705 |-34.62262
+              |  A |-58.38254 |-34.61850
+              |  A |-58.38409 |-34.61999
+              |  A |-58.39352 |-34.62451
+              |  A |-58.38914 |-34.62843
+              |  A |-58.39476 |-34.62932
 
 
 Then the geographic position of participants and program locations can be plotted, on top of a basemap, with:
