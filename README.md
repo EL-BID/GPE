@@ -25,11 +25,10 @@ You'll need a .csv file containing program participant data, including at least 
 
 Having a "participants" dataframe such as
 
+    participants <- read.csv("../data/participants.csv")
+    head(participants)
+
 `
-participants <- read.csv("../data/participants.csv")
-
-head(participants)
-
    participant_id     group       lon       lat income_bracket
 
                1   control -58.50748 -34.64797              4
@@ -48,11 +47,11 @@ head(participants)
 
 And another dataframe containing the Program sites, such as:
 
+    locations <- read.csv("../data/locations.csv")
+    head(locations)
+
+
 `
-locations <- read.csv("../data/locations.csv")
-
-head(locations)
-
    location_id type       lon       lat
    
             1    A -58.37705 -34.62262
