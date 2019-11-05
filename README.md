@@ -42,13 +42,13 @@ And another dataframe containing the Program sites, such as:
     locations <- read.csv("../data/locations.csv")
     head(locations)
 
-              |  location_id | type   |   lon    |   lat
-              |  A |-58.37705 |-34.62262
-              |  A |-58.38254 |-34.61850
-              |  A |-58.38409 |-34.61999
-              |  A |-58.39352 |-34.62451
-              |  A |-58.38914 |-34.62843
-              |  A |-58.39476 |-34.62932
+               location_id    type    lon         lat
+               1              A       -58.37705   -34.62262
+               2              A       -58.38254   -34.61850
+               3              C       -58.38409   -34.61999
+               4              B       -58.39352   -34.62451
+               5              A       -58.38914   -34.62843
+               6              C       -58.39476   -34.62932
 
 
 Then the geographic position of participants and program locations can be plotted, on top of a basemap, with:
