@@ -4,15 +4,15 @@
 
 The R package GPE (Georeferenced Program Evaluation), includes functions that will allow the user to study various aspects of consumer or beneficiary behavior, including:
 
-    i.      Georeference postal addresses (converting street name and number to latitude and longitude points)
+i.      Georeference postal addresses (converting street name and number to latitude and longitude points)
 
-    ii.	    Obtain base maps of any city’s urban grid and visualize overlaid projections of the distance traveled (between participants’ homes and points of service accessed, for example)
+ii.     Obtain base maps of any city’s urban grid and visualize overlaid projections of the distance traveled (between participants’ homes and points of service accessed, for example)
 
-    iii.	Estimate a matrix of distances between sites accessed and consumer/beneficiary origin
+iii.	Estimate a matrix of distances between sites accessed and consumer/beneficiary origin
 
-    iv.	    Calculate metrics of frequency, distribution by group, and distance travelled by consumers/beneficiaries to points of sale/access
+iv.	    Calculate metrics of frequency, distribution by group, and distance travelled by consumers/beneficiaries to points of sale/access
     
-    v.	    Create visualizations that explore the difference between frequency and type of consumption by consumer/beneficiary attribute (depending on the information available: socioeconomic status, length of program participation, type of program participation, etc)
+v.	    Create visualizations that explore the difference between frequency and type of consumption by consumer/beneficiary attribute (depending on the information available: socioeconomic status, length of program participation, type of program participation, etc)
 
 
 
