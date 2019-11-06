@@ -17,27 +17,32 @@ You'll need tabular data with addresses, or "lon" and "lat" columns containing W
 
 ## Example
 
-Having a "participants" dataframe such as:
 
 ```{r}
-participants <- read.csv("../data/participants.csv")
+library(GPE)
+```
 
+
+You'll need a data frame containg participant data. 
+
+GPE includes "participants", an example data frame with fictional public program beneficiaries:
+
+```{r}
 head(participants)
 ```
 
-And another dataframe containing the Program sites, such as:
+Then another  dataframe containing the Program sites -that is, places that participants visit in order to interact with the program, such as training centers, day care provdiders, etc.  
+
+GPE includes "locations", an example data frame with fictional public program sites:
+
 
 ```{r}
-locations <- read.csv("../data/locations.csv")
-
 head(locations)
 ```
 
 Then the geographic position of participants and program locations can be plotted, on top of a basemap, with:
 
 ```{r}
-library(GPE)
-
 GPE_plot_map(participants, locations)
 ```
 

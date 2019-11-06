@@ -7,13 +7,15 @@
 GPE_get_basemap(participants, locations)
 }
 \arguments{
-\item{participants}{a dataframe a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
+\item{participants}{a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
 
-\item{locations}{a dataframe a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
+\item{locations}{a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
 }
 \description{
 Get a basemap from Stamen Maps (http://maps.stamen.com/)
 }
 \examples{
-get_basemap(participants = participants_sf, locations = location_df)
+\donttest{
+GPE_get_basemap(participants = participants, locations = locations)
+}
 }

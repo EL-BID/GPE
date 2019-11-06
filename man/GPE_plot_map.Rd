@@ -20,5 +20,7 @@ GPE_plot_map(participants, locations, participant_attribute = NA,
 Plot a map showing participants, and program locations
 }
 \examples{
-GPE_plot_map(participants = participants_sf, location = location_df)
+\donttest{
+#'GPE_plot_map(participants = participants_sf, location = location_df)
+}
 }

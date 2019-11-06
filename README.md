@@ -57,7 +57,7 @@ Then the geographic position of participants and program locations can be plotte
     GPE_plot_map(participants, locations)
 
 <p align="center">
-  <img width="300" src="https://github.com/EL-BID/GPE/blob/master/img/plot_map_example.PNG">
+  <img width="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_example.PNG">
 </p>
 
 

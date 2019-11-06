@@ -7,7 +7,9 @@
 #' @param locations a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates
 #'
 #' @examples
-#' GPE_get_basemap(participants = participants_sf, locations = location_df)
+#' \donttest{
+#' GPE_get_basemap(participants = participants, locations = locations)
+#' }
 
 GPE_get_basemap <- function(participants, locations) {
 
