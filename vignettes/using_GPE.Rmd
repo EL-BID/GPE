@@ -8,7 +8,7 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 300)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 200)
 ```
 
 ## Prerequisites
@@ -43,6 +43,7 @@ key <- ggmap::google_key()
 GPE_geocode(schools, address, key)
 ```
 
+Columns with latitude and longitude coordinates are added to the original data frame.
 
 ## Mapping geocoded data
 
@@ -55,14 +56,15 @@ head(participants)
 ```
 
 
-
 The geographic position of participants and program locations can be plotted, on top of a basemap, with:
 
 ```{r}
 GPE_plot_map(participants)
 ```
 
-If you also have a dataframe containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc-. you can also map it. GPE includes "locations", an example data frame with fictional public program sites:
+In order for `GPE_plot_map()` to work, the input dataframe mus include columns named "lat" and "lon" representing WGS84 coordinates. As reviously shown, latitude and longitude columns can be obtained from addresses using `GPE_geocode()`
+
+In addtion, a dataframe containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc-. can also be mapped. GPE includes "locations", an example data frame with fictional public program sites:
 
 ```{r}
 head(locations)
@@ -74,8 +76,20 @@ GPE_plot_map(participants, locations)
 
 ## Estimating travel distance and time
 
+Having records of interaction between people and places -representing trips of consumers/beneficiaries to points of sale/access- time and distance travelled can be estimated by using the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.
+
+GPE provides an example "visits" data frame:
 
 ```{r}
-
+visits
 ```
+
+Trip distance and duration can be obtained using `GPE_travel_time_dist()`. The function takes as input visits data, as well as the locations and participants data frames that provide the origin and destination coordinates. A valid Google Maps Platform API key is also required. Transport mode can be choose from "transit" (default), "driving", "walking", or "bicycling". Keep in mind that transit routing information is not available for every city.   
+
+
+```{r}
+GPE_travel_time_dist(visits, participants, locations, key)
+```
+
+## Metrics
 

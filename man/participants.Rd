@@ -4,10 +4,11 @@
 \name{participants}
 \alias{participants}
 \title{Made up participants}
-\format{A data frame with 7452 rows and 5 variables:
+\format{A data frame with 100 rows and 5 variables:
 \describe{
   \item{participant_id}{Participant unique ID}
   \item{group}{An example categorical attribute}
+  \item{address}{A made app address}
   \item{lon}{Participant longitude - home address or other origin point}
   \item{lat}{Participant latitude - home address or other origin point}
   \item{income_bracket}{An example ordinal attribute}

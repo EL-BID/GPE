@@ -7,15 +7,15 @@
 #' @param participants a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates and a "participant_id" column
 #' @param locations a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates and a "location_id" column
 #' @param key an API key obtained at https://cloud.google.com/maps-platform/
-#' @param travel_mode (optional) either "transit" (default), "driving", "walking", or "bicycling"
+#' @param transport_mode (optional) either "transit" (default), "driving", "walking", or "bicycling"
 #' @examples
 #' \donttest{
-#' #'GPE_travel_time_dist(visits, participants, locations, key, travel_mode = "walking")
+#' #'GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
 #' }
 
 
 
-GPE_travel_time_dist <- function(visits, participants, locations, key, travel_mode = "transit") {
+GPE_travel_time_dist <- function(visits, participants, locations, key, transport_mode = "transit") {
 
     if (is.na(ggmap::google_key()) | ggmap::google_key() != key) ggmap::register_google(key)
 
@@ -31,7 +31,7 @@ GPE_travel_time_dist <- function(visits, participants, locations, key, travel_mo
     trips["to"] <- paste(trips$dest_lon, trips$dest_lat, sep = ",")
 
 
-    trip_dist_time <- function(from, to, mode = travel_mode) {
+    trip_dist_time <- function(from, to, mode = transport_mode) {
 
         results <- ggmap::route(from, to, mode)
 

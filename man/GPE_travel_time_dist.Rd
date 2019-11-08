@@ -5,7 +5,7 @@
 \title{GPE_travel_time_dist}
 \usage{
 GPE_travel_time_dist(visits, participants, locations, key,
-  travel_mode = "transit")
+  transport_mode = "transit")
 }
 \arguments{
 \item{visits}{a dataframe of "visits", events when a participant visited a location, containgn "participant_id" and location_id columns}
@@ -16,13 +16,13 @@ GPE_travel_time_dist(visits, participants, locations, key,
 
 \item{key}{an API key obtained at https://cloud.google.com/maps-platform/}
 
-\item{travel_mode}{(optional) either "transit" (default), "driving", "walking", or "bicycling"}
+\item{transport_mode}{(optional) either "transit" (default), "driving", "walking", or "bicycling"}
 }
 \description{
 Estimate travel time and distance between origins and destinations
 }
 \examples{
 \donttest{
-#'GPE_travel_time_dist(visits, participants, locations, key, travel_mode = "walking")
+#'GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
 }
 }

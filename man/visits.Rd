@@ -4,7 +4,7 @@
 \name{visits}
 \alias{visits}
 \title{Made up visits}
-\format{A data frame with 19123 rows and 3 variables:
+\format{A data frame with 10 rows and 3 variables:
 \describe{
   \item{date}{Visit date}
   \item{participant_id}{Participant unique ID}

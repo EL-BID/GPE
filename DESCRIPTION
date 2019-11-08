@@ -6,9 +6,9 @@ Author: H. Antonio Vazquez Brust
 Maintainer: H. Antonio Vazquez Brust <avazquez@gmail.com>
 Description: GPE provides functions for easy mapping and visualization of data related to public programs evaluation where location and distance matter.
 Depends: 
+    R (>= 2.10),
     ggplot2,
-    ggmap,
-    sf
+    ggmap
 Suggests: 
     knitr, 
     rmarkdown

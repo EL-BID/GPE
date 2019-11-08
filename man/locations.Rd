@@ -6,7 +6,7 @@
 \title{Made up locations in Buenos Aires, Argentina}
 \format{A data frame with 76 rows and 4 variables:
 \describe{
-  \item{location_ID}{Unique identifier}
+  \item{location_id}{Unique identifier}
   \item{type}{a categorical variable}
   \item{lon}{Longitude}
   \item{lat}{Latitude}
