@@ -13,7 +13,7 @@
 
 GPE_geocode <- function(data, address, key) {
 
-    if (ggmap::google_key() != key) register_google(key)
+    if (is.na(ggmap::google_key()) | ggmap::google_key() != key) ggmap::register_google(key)
 
     ggmap::mutate_geocode(data = data, location = address)
 }

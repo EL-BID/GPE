@@ -18,5 +18,5 @@ GPE_get_basemap <- function(participants, locations) {
 
     zoom <- ggmap::calc_zoom(bbox)
 
-    basemap <- ggmap::get_stamenmap(bbox = bbox, zoom = zoom)
+    ggmap::get_stamenmap(bbox = bbox, zoom = zoom)
 }

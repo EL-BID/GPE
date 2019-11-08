@@ -4,13 +4,13 @@
 \alias{GPE_plot_map}
 \title{GPE_plot_map}
 \usage{
-GPE_plot_map(participants, locations, participant_attribute = NA,
-  location_attribute = NA)
+GPE_plot_map(participants, locations = NULL,
+  participant_attribute = NA, location_attribute = NA)
 }
 \arguments{
-\item{participants}{a dataframe a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
+\item{participants}{a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
 
-\item{locations}{a dataframe a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
+\item{locations}{a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
 
 \item{participant_attribute}{(optional) a participants dataframe column containing an attribute to show in the map}
 
@@ -21,6 +21,6 @@ Plot a map showing participants, and program locations
 }
 \examples{
 \donttest{
-#'GPE_plot_map(participants = participants_sf, location = location_df)
+#'GPE_plot_map(participants = participants, locations = locations)
 }
 }
