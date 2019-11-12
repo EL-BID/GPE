@@ -1,16 +1,15 @@
 #' GPE_travel_time_dist
 #'
 #' Estimate travel time and distance between origins and destinations
-#' @import ggmap
 #' @export GPE_travel_time_dist
-#' @param visits a dataframe of "visits", events when a participant visited a location, containgn "participant_id" and location_id columns
+#' @param visits a dataframe of "visits", events when a participant visited a location, containing "participant_id" and "location_id" columns
 #' @param participants a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates and a "participant_id" column
 #' @param locations a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates and a "location_id" column
 #' @param key an API key obtained at https://cloud.google.com/maps-platform/
 #' @param transport_mode (optional) either "transit" (default), "driving", "walking", or "bicycling"
 #' @examples
 #' \donttest{
-#' #'GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
+#' GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
 #' }
 
 

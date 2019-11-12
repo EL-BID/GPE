@@ -1,8 +1,6 @@
 #' GPE_plot_map
 #'
 #' Plot a map showing participants, and program locations
-#' @import ggplot2
-#' @import ggmap
 #' @export GPE_plot_map
 #' @param participants a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates
 #' @param locations a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates
@@ -10,7 +8,7 @@
 #' @param location_attribute (optional) a locations dataframe column containing an attribute to show in the map
 #' @examples
 #' \donttest{
-#' #'GPE_plot_map(participants = participants, locations = locations)
+#' GPE_plot_map(participants = participants, locations = locations)
 #' }
 
 

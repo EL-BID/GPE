@@ -8,7 +8,7 @@ GPE_travel_time_dist(visits, participants, locations, key,
   transport_mode = "transit")
 }
 \arguments{
-\item{visits}{a dataframe of "visits", events when a participant visited a location, containgn "participant_id" and location_id columns}
+\item{visits}{a dataframe of "visits", events when a participant visited a location, containing "participant_id" and "location_id" columns}
 
 \item{participants}{a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates and a "participant_id" column}
 
@@ -23,6 +23,6 @@ Estimate travel time and distance between origins and destinations
 }
 \examples{
 \donttest{
-#'GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
+GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
 }
 }

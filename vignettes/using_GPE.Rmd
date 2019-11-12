@@ -104,12 +104,43 @@ GPE provides an example "visits" data frame:
 visits
 ```
 
-Trip distance and duration can be obtained using `GPE_travel_time_dist()`. The function takes as input visits data, as well as the locations and participants data frames that provide the origin and destination coordinates. A valid Google Maps Platform API key is also required. Transport mode can be choose from "transit" (default), "driving", "walking", or "bicycling". Keep in mind that transit routing information is not available for every city.   
+Trip distance and duration can be obtained using `GPE_travel_time_dist()`. The function takes as input visits data, as well as the locations and participants data frames that provide the origin and destination coordinates. A valid Google Maps Platform API key is also required. Transport mode can be choose from "transit" (default), "driving", "walking", or "bicycling". Keep in mind that transit routing information is not available for all cities; "driving" and "walking" routing is usually available everywhere.   
 
 
-```{r}
+```{r eval=FALSE}
 GPE_travel_time_dist(visits, participants, locations, key)
 ```
 
-## Metrics
+```{r echo=FALSE}
+visits_timedist
+```
 
+
+## Summaries
+
+
+GPE includes a simple summary function that takes a "visits" data frame, as described before, and returns basic descriptive statistics for 
+
+ * frecuency of visits, by participant (person) 
+ * frecuency of visits, by location (site) 
+ 
+If the input data frame includes `time_minutes` and `distance_km` columns (i.e. as a result of using `GPE_travel_time_dist()`) the summary will also include basic descriptive statistics for 
+
+ * travel time, in minutes 
+ * travel distance, in km
+
+For example, given a data frame like
+
+```{r}
+head(visits_timedist)
+```
+
+the result is:
+
+```{r}
+GPE_summary(visits_timedist)
+```
+
+## Visualization
+
+.... COMING SOON

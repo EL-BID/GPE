@@ -1,7 +1,6 @@
 #' GPE_get_basemap
 #'
 #' Get a basemap from Stamen Maps (http://maps.stamen.com/)
-#' @import ggmap
 #' @export GPE_get_basemap
 #' @param participants a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates
 #' @param locations a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates

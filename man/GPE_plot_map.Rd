@@ -21,6 +21,6 @@ Plot a map showing participants, and program locations
 }
 \examples{
 \donttest{
-#'GPE_plot_map(participants = participants, locations = locations)
+GPE_plot_map(participants = participants, locations = locations)
 }
 }

@@ -8,20 +8,44 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 300)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 200)
 ```
 
 ## Prerequisites
 
 You'll need tabular data with addresses, or "lon" and "lat" columns containing WG84 (Mercator) location coordinates. IE, a table with the addresses of schools were program beneficiaries attend, or a street or centroid identifying their neighboorhoods, or their home addresses -if using personal data is allowed.
 
-## Example
+## Geocoding
 
+You can can geocode your data (obtain latitude and longitude from addresses) via `GPE_geocode()`, a function that queries the Google Maps Platform to translate addresses into latitude/longitude coordinates. 
+
+Using the Google Maps Platform requires a registered API key. To obtain it, follow instructions from  https://developers.google.com/maps/gmp-get-started. Make sure you enable the Geocoding API.
+
+A valid API key is a string of leters and numbers that looks like `AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9` -this is not a real ID by the way, just an example-. Once you have your key, you can take a data frame with an address column like this one:
 
 ```{r}
 library(GPE)
+
+schools
 ```
 
+...then add latitude and longited columns with GPE_geocode, specifying the name of the address column and your Google Maps Platform API key:
+
+```{r eval=FALSE}
+key <- "AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9" # This is not a real API key, provide yours
+
+GPE_geocode(schools, address, key)
+```
+
+```{r echo=FALSE}
+key <- ggmap::google_key()
+
+GPE_geocode(schools, address, key)
+```
+
+Columns with latitude and longitude coordinates are added to the original data frame.
+
+## Mapping geocoded data
 
 You'll need a data frame containg participant data. 
 
@@ -31,18 +55,92 @@ GPE includes "participants", an example data frame with fictional public program
 head(participants)
 ```
 
-Then another  dataframe containing the Program sites -that is, places that participants visit in order to interact with the program, such as training centers, day care provdiders, etc.  
 
-GPE includes "locations", an example data frame with fictional public program sites:
+The geographic position of participants and program locations can be plotted, on top of a basemap, with:
 
+```{r}
+GPE_plot_map(participants)
+```
+
+In order for `GPE_plot_map()` to work, the input dataframe mus include columns named "lat" and "lon" representing WGS84 coordinates. As reviously shown, latitude and longitude columns can be obtained from addresses using `GPE_geocode()`
+
+In addtion, a dataframe containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc-. can also be mapped. GPE includes "locations", an example data frame with fictional public program sites:
 
 ```{r}
 head(locations)
 ```
 
-Then the geographic position of participants and program locations can be plotted, on top of a basemap, with:
-
 ```{r}
 GPE_plot_map(participants, locations)
 ```
 
+You can also visualize participant attributes by indicating the column name for the variable to show:
+
+```{r}
+GPE_plot_map(participants, locations, participant_attribute = "group")
+```
+
+Also location attributes...
+
+```{r}
+GPE_plot_map(participants, locations, location_attribute = "type")
+```
+
+
+... or both participant and location attributes:
+
+```{r}
+GPE_plot_map(participants, locations, participant_attribute = "group", location_attribute = "type")
+```
+
+
+## Estimating travel distance and time
+
+Having records of interaction between people and places -representing trips of consumers/beneficiaries to points of sale/access- time and distance travelled can be estimated by using the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.
+
+GPE provides an example "visits" data frame:
+
+```{r}
+visits
+```
+
+Trip distance and duration can be obtained using `GPE_travel_time_dist()`. The function takes as input visits data, as well as the locations and participants data frames that provide the origin and destination coordinates. A valid Google Maps Platform API key is also required. Transport mode can be choose from "transit" (default), "driving", "walking", or "bicycling". Keep in mind that transit routing information is not available for all cities; "driving" and "walking" routing is usually available everywhere.   
+
+
+```{r eval=FALSE}
+GPE_travel_time_dist(visits, participants, locations, key)
+```
+
+```{r echo=FALSE}
+visits_timedist
+```
+
+
+## Summaries
+
+
+GPE includes a simple summary function that takes a "visits" data frame, as described before, and returns basic descriptive statistics for 
+
+ * frecuency of visits, by participant (person) 
+ * frecuency of visits, by location (site) 
+ 
+If the input data frame includes `time_minutes` and `distance_km` columns (i.e. as a result of using `GPE_travel_time_dist()`) the summary will also include basic descriptive statistics for 
+
+ * travel time, in minutes 
+ * travel distance, in km
+
+For example, given a data frame like
+
+```{r}
+head(visits_timedist)
+```
+
+the result is:
+
+```{r}
+#GPE_summary(visits_timedist)
+```
+
+## Visualization
+
+.... COMING SOON
