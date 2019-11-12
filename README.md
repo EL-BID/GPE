@@ -19,7 +19,9 @@ v.	    Create visualizations that explore the difference between frequency and t
 ## User guide
 ### Basic usage
 
-You'll need a .csv file containing program participant data, including at least columns "lon" and "lat", containing WG84 (Mercator) location coordinates.
+An example of each function can be found un the [doc](https://github.com/EL-BID/GPE/tree/master/doc) folder of this repository. 
+
+You'll need at least a .csv file containing program participant data, including at least columns "lon" and "lat", containing WG84 (Mercator) location coordinates.
 
 ### Example
 
