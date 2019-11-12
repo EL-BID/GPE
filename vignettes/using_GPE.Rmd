@@ -112,7 +112,7 @@ GPE_travel_time_dist(visits, participants, locations, key)
 ```
 
 ```{r echo=FALSE}
-visits_timedist
+merge(visits, visits_timedist, all = FALSE)
 ```
 
 

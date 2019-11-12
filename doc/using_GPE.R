@@ -44,11 +44,11 @@ visits
 #  GPE_travel_time_dist(visits, participants, locations, key)
 
 ## ----echo=FALSE----------------------------------------------------------
-visits_timedist
+merge(visits, visits_timedist, all = FALSE)
 
 ## ------------------------------------------------------------------------
 head(visits_timedist)
 
 ## ------------------------------------------------------------------------
-#GPE_summary(visits_timedist)
+GPE_summary(visits_timedist)
 
