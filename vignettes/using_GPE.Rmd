@@ -74,6 +74,26 @@ head(locations)
 GPE_plot_map(participants, locations)
 ```
 
+You can also visualize participant attributes by indicating the column name for the variable to show:
+
+```{r}
+GPE_plot_map(participants, locations, participant_attribute = "group")
+```
+
+Also location attributes...
+
+```{r}
+GPE_plot_map(participants, locations, location_attribute = "type")
+```
+
+
+... or both participant and location attributes:
+
+```{r}
+GPE_plot_map(participants, locations, participant_attribute = "group", location_attribute = "type")
+```
+
+
 ## Estimating travel distance and time
 
 Having records of interaction between people and places -representing trips of consumers/beneficiaries to points of sale/access- time and distance travelled can be estimated by using the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.

@@ -28,15 +28,39 @@ GPE_plot_map <- function(participants, locations = NULL,
                             0.1 }
     }
 
-    ggmap::ggmap(ggmap = basemap) +
-        ggplot2::geom_point(data = participants, ggplot2::aes_string(x = "lon", y = "lat"),
-                   color = "#e34a33",
-                   alpha = 0.5,
-                   size = point_size(nrow(participants))) +
-            ggplot2::geom_point(data = locations, ggplot2::aes_string(x = "lon", y = "lat"),
-                                shape = 6,
-                                size = 2) +
-            ggplot2::theme_void()
+    set_color_scale <- function() {
+        if (is.numeric(participants[[participant_attribute]])) return(ggplot2::scale_color_viridis_c(option = "plasma"))
+            else return(ggplot2::scale_color_viridis_d(option = "plasma"))
+    }
+
+    p <- ggmap::ggmap(ggmap = basemap)
+
+    if (is.na(participant_attribute)) {
+        p <- p + ggplot2::geom_point(data = participants, ggplot2::aes_string(x = "lon", y = "lat"),
+                                     color = "#e34a33", alpha = 0.5, size = point_size(nrow(participants)))
+    } else {
+        p <- p + ggplot2::geom_point(data = participants,
+                                     ggplot2::aes_string(x = "lon", y = "lat", color = participant_attribute),
+                                     alpha = 0.5, size = point_size(nrow(participants))) +
+            set_color_scale()
+    }
+
+    if (!missing(locations)) {
+
+        if (is.na(location_attribute)) {
+            p <- p + ggplot2::geom_point(data = locations,
+                                         ggplot2::aes_string(x = "lon", y = "lat"),
+                                         shape = 6, size = point_size(nrow(locations)))
+        } else {
+            p <- p + ggplot2::geom_point(data = locations,
+                                         ggplot2::aes_string(x = "lon", y = "lat", shape = location_attribute),
+                                         size = point_size(nrow(locations)))
+        }
+
+    }
+
+
+    p + ggplot2::theme_void()
 
 }
 

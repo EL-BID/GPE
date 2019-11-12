@@ -22,10 +22,10 @@ GPE_travel_time_dist <- function(visits, participants, locations, key, transport
     trips <- unique(visits[c("participant_id", "location_id")] )
 
     trips <- merge(trips, participants[c("participant_id","lon", "lat")])
-    colnames(trips)[c(ncol(trips), ncol(trips)-1)] <- c(c("origin_lon", "origin_lat"))
+    colnames(trips)[c(ncol(trips)-1, ncol(trips))] <- c("origin_lat", "origin_lon")
 
     trips <- merge(trips, locations[c("location_id", "lon", "lat")])
-    colnames(trips)[c(ncol(trips), ncol(trips)-1)] <- c(c("dest_lon", "dest_lat"))
+    colnames(trips)[c(ncol(trips)-1, ncol(trips))] <- c("dest_lat", "dest_lon")
 
     trips["from"] <- paste(trips$origin_lon, trips$origin_lat, sep = ",")
     trips["to"] <- paste(trips$dest_lon, trips$dest_lat, sep = ",")
