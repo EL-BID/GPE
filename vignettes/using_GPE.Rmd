@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 200)
 
 ## Prerequisites
 
-You'll need tabular data with addresses, or "lon" and "lat" columns containing WG84 (Mercator) location coordinates. IE, a table with the addresses of schools were program beneficiaries attend, or a street or centroid identifying their neighboorhoods, or their home addresses -if using personal data is allowed.
+You'll need tabular data with addresses, or "lon" and "lat" columns containing WG84 (Mercator) location coordinates. Examples are a table with the addresses of schools were program beneficiaries attend, or a street or centroid identifying their neighboorhoods, or their home addresses -if using personal data is allowed.
 
 ## Geocoding
 
