@@ -199,11 +199,10 @@ GPE was developed by [H. Antonio Vazquez Brust](https://ar.linkedin.com/in/avazq
 
 
 ## License
-[GNU General Public License v3.0](https://github.com/EL-BID/GPE/blob/master/LICENSE)
 
 The Documentation of Support and Use of the software is licensed under Creative Commons IGO 3.0 Attribution-NonCommercial-NoDerivative (CC-IGO 3.0 BY-NC-ND)
 
-The codebase of this repo uses [AM-331-A3 Software License](https://github.com/IDB-HUD/Housing_Deficit/blob/master/LICENSE.md).
+The codebase of this repo uses [AM-331-A3 Software License](https://github.com/EL-BID/GPE/blob/master/LICENSE.md).
 
 
 ## Limitation of responsibilities
