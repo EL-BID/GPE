@@ -64,7 +64,7 @@ To map the geocoded data, you’ll need a data frame containing participant data
 
 `GPE_plot_map(participants)`
 
-<p align="center">
+<p align="left">
   <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_participants.PNG">
 </p>
 
@@ -74,7 +74,7 @@ In addition, a data frame containing locations -places that participants visit i
 
 `GPE_plot_map(participants, locations)`
 
-<p align="center">
+<p align="left">
   <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_par_loc.PNG">
 </p>
 
@@ -82,7 +82,7 @@ You can also visualize participant attributes by indicating the name of the colu
 
 `GPE_plot_map(participants, locations, participant_attribute = "group")`
 
-<p align="center">
+<p align="left">
   <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_bygroup.PNG">
 </p>
 
@@ -90,7 +90,7 @@ The same can be done for location attributes…
 
 `GPE_plot_map(participants, locations, location_attribute = "type")`
 
-<p align="center">
+<p align="left">
   <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_loc_att.PNG">
 </p>
 
@@ -98,7 +98,7 @@ The same can be done for location attributes…
 
 `GPE_plot_map(participants, locations, participant_attribute = "group", location_attribute = "type")`
 
-<p align="center">
+<p align="left">
   <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_bygroup_loc_att.PNG">
 </p>
 
