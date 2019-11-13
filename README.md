@@ -21,7 +21,7 @@ The R package GPE (Georeferenced Program Evaluation), includes functions that wi
 
 For complete documentation of this R package, please see the [documentation website](). Examples of the functions can be found below and in the [doc](https://github.com/EL-BID/GPE/tree/master/doc) folder of this repository. 
 
-You'll need at least a .csv file containing program participant data, including at least columns "lon" and "lat", containing WG84 (Mercator) location coordinates.
+You’ll need tabular data with addresses, or “lon” and “lat” columns containing WG84 (Mercator) location coordinates. In other words, a table with the addresses of schools that program beneficiaries attend, or a street or centroid identifying their neighborhoods, or their home addresses if using personal data is allowed.
 
 
 #### Geocoding
@@ -36,56 +36,31 @@ Having a "participants" dataframe such as
     library(GPE)
     schools
 
-`## # A tibble: 10 x 3`
-`##    name            address                             level               `
-`##    <chr>           <chr>                               <chr>               `
-`##  1 EMus 02         Camarones 4351, C1407FMU, CABA      other               `
-`##  2 Col La Anuncia… Arenales 2065, C1124AAE, CABA       preschool, primary,…`
-`##  3 EPjs 06         Avda. Eva Perón 7431, C1439BTM, CA… primary             `
-`##  4 EPjs 02         Avda. Pte. Manuel Quintana 31/07, … primary             `
-`##  5 Col Horacio Wa… Díaz Colodrero 2431, C1431FMA, CABA preschool, primary,…`
-`##  6 EPjc 21         Pinto 3910, C1429APP, CABA          primary             `
-`##  7 Casa de la Edu… Boulogne Sur Mer 626, C1213AAJ, CA… primary, secondary  `
-`##  8 CFP 06 CIFPA    Avda. Asamblea 153, C1424COB, CABA  secondary           `
-`##  9 EI Pulgarcito   Cerrito 572, C1010AAL, CABA         other               `
-`## 10 Esc de la Paz   Gral. Venancio Flores 65, C1405CGA… preschool, primary,… `
+                    name            address                             level         
+                1   EMus 02         Camarones 4351, C1407FMU, CABA      other
+                2   Col La Anuncia… Arenales 2065, C1124AAE, CABA       preschool, primary,…
+                3   EPjs 06         Avda. Eva Perón 7431, C1439BTM, CA… primary             `
+                4   EPjs 02         Avda. Pte. Manuel Quintana 31/07, … primary             `
+                5   Col Horacio Wa… Díaz Colodrero 2431, C1431FMA, CABA preschool, primary,…
 
 … and add latitude and longitude columns using GPE_geocode, specifying the name of the address column and your Google Maps Platform API key:
 `key <- "AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9" # This is not a real API key, you must provide yours`
 
 `GPE_geocode(schools, address, key)`
 
-`## # A tibble: 10 x 5
-`##    name          address                      level               lon   lat`
-`##    <chr>         <chr>                        <chr>             <dbl> <dbl>`
-`##  1 EMus 02       Camarones 4351, C1407FMU, C… other             -58.5 -34.6`
-`##  2 Col La Anunc… Arenales 2065, C1124AAE, CA… preschool, prima… -58.4 -34.6`
-`##  3 EPjs 06       Avda. Eva Perón 7431, C1439… primary           -58.5 -34.7`
-`##  4 EPjs 02       Avda. Pte. Manuel Quintana … primary           -58.4 -34.6`
-`##  5 Col Horacio … Díaz Colodrero 2431, C1431F… preschool, prima… -58.5 -34.6`
-`##  6 EPjc 21       Pinto 3910, C1429APP, CABA   primary           -58.5 -34.5`
-`##  7 Casa de la E… Boulogne Sur Mer 626, C1213… primary, seconda… -58.4 -34.6`
-`##  8 CFP 06 CIFPA  Avda. Asamblea 153, C1424CO… secondary         -58.4 -34.6`
-`##  9 EI Pulgarcito Cerrito 572, C1010AAL, CABA  other             -58.4 -34.6`
-`## 10 Esc de la Paz Gral. Venancio Flores 65, C… preschool, prima… -58.4 -34.6`
-
+                    name            address                          level             lon     lat
+                1   EMus 02         Camarones 4351, C1407FMU, C…     other             -58.5   -34.6
+                2   Col La Anunc…   Arenales 2065, C1124AAE, CA…     preschool, prima… -58.4   -34.6`
+                3   EPjs 06         Avda. Eva Perón 7431, C1439…     primary           -58.5   -34.7`
+                4   EPjs 02         Avda. Pte. Manuel Quintana …     primary           -58.4   -34.6`
+                5   Col Horacio …   Díaz Colodrero 2431, C1431F…     preschool, prima… -58.5   -34.6`
+                
 Columns with latitude and longitude coordinates are added to the original data frame.
+
 
 #### Mapping geocoded data
 
-You’ll need a data frame containing participant data. GPE includes “participants”, an example data frame with fictional public program beneficiaries:
-
-`head(participants)`
-
-`##   participant_id     group income_bracket                                               address            lon       lat`
-`## 1           6494 treatment              6                                LAVALLE Y PARANA, CABA      -58.38835 -34.60277`
-`## 2            409   control              6                          HORTIGUERA Y SANTANDER, CABA      -58.44152 -34.63677`
-`## 3           6763 treatment              4                                BAZURCO Y CUENCA, CABA      -58.51083 -34.58317`
-`## 4            616   control             10   FIGUEROA ALCORTA, PRES. AV. Y SIVORI, EDUARDO, CABA      -58.40110 -34.57915`
-`## 5           4650   control              7                       AGUIRRE Y ALVAREZ, JULIAN, CABA      -58.43369 -34.59969`
-`## 6            594   control              8                                 JUNIN Y LAVALLE, CABA      -58.39656 -34.60365`
-
-The geographic position of participants and program locations can be plotted, over a basemap, using:
+To map the geocoded data, you’ll need a data frame containing participant data. GPE includes “participants”, an example data frame with fictional public program beneficiaries. The geographic position of participants and program locations can be plotted, over a basemap, using:
 
 `GPE_plot_map(participants)`
 
@@ -93,19 +68,7 @@ The geographic position of participants and program locations can be plotted, ov
 
 In order for `GPE_plot_map()` to work, the input data frame must include columns named “lat” and “lon” representing WGS84 coordinates. As previously shown, latitude and longitude columns can be obtained from addresses using `GPE_geocode()`.
 
-In addition, a data frame containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc.- can also be mapped. GPE includes “locations”, an example data frame with fictional public program sites:
-
-`head(locations)`
-
-`## # A tibble: 6 x 4`
-`##   location_id type    lon   lat`
-` ##         <dbl> <chr> <dbl> <dbl>`
-`## 1           1 A     -58.4 -34.6`
-`## 2           2 A     -58.4 -34.6`
-`## 3           3 A     -58.4 -34.6`
-`## 4           4 A     -58.4 -34.6`
-`## 5           5 A     -58.4 -34.6`
-`## 6           6 A     -58.4 -34.6`
+In addition, a data frame containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc.- can also be mapped. GPE includes “locations”, an example data frame with fictional public program sites. This dummy data can be used as follows to generate a more detailed map:
 
 `GPE_plot_map(participants, locations)`
 
@@ -139,35 +102,25 @@ GPE provides an example “visits” data frame:
 
 `visits`
 
-`## # A tibble: 10 x 3`
-`##    date       participant_id location_id`
-`##    <date>              <dbl>       <dbl>`
-`##  1 2018-07-22           5786          71`
-`##  2 2018-06-29            804           5`
-`##  3 2018-11-08           6880          76`
-`##  4 2018-03-29            834           6`
-`##  5 2018-05-31           2643          67`
-`##  6 2018-09-18           1694          17`
-`##  7 2018-09-04           4852          26`
-`##  8 2018-08-06           2825           9`
-`##  9 2018-08-16           4522          61`
-`## 10 2018-06-12           3395          61`
+                    date            participant_id   location_id             
+                1   2018-07-22      5786             71
+                2   2018-06-29      804              5
+                3   2018-11-08      6880             76
+                4   2018-03-29      834              6
+                5   2018-05-31      2643             67
+
 
 Trip distance and duration can be obtained using GPE_travel_time_dist(). As inputs, the function uses visits data, and the locations and participants data frames to provide the origin and destination coordinates. The mode of transport can be chosen from “transit” (default), “driving”, “walking”, or “bicycling”. Keep in mind that transit routing information is not available for all cities; “driving” and “walking” routing is usually available everywhere.
 
 `GPE_travel_time_dist(visits, participants, locations, key)`
 
-`##          date participant_id location_id time_minutes distance_km    mode`
-`## 1  2018-03-29            834           6     17.38333       2.317 transit`
-`## 2  2018-05-31           2643          67     39.35000       5.511 transit`
-`## 3  2018-06-12           3395          61     39.80000       8.816 transit`
-`## 4  2018-06-29            804           5     36.20000      10.664 transit`
-`## 5  2018-07-22           5786          71     21.75000       2.303 transit`
-`## 6  2018-08-06           2825           9     31.20000       4.363 transit`
-`## 7  2018-08-16           4522          61     40.30000      10.397 transit`
-`## 8  2018-09-04           4852          26     40.81667       5.293 transit`
-`## 9  2018-09-18           1694          17     66.25000      12.231 transit`
-`## 10 2018-11-08           6880          76     55.16667      11.477 transit`
+                    date            participant_id   location_id    time_minutes   distance_km  mode        
+                1   2018-03-29      834              6              17.38333       2.317        transit
+                2   2018-05-31      2643             67             39.35000       5.511        transit
+                3   2018-06-12      3395             61             39.80000       8.816        transit
+                4   2018-06-29      804              5              36.20000      10.664        transit
+                5   2018-07-22      5786             71             21.75000       2.303        transit
+
 
 
 #### Summaries
@@ -183,14 +136,12 @@ o	travel distance, in km
 
 For example, given a data frame like: 
 
-`head(visits_timedist)`
-`##   participant_id location_id       date time_minutes distance_km    mode`
-`## 1           1080           1 2018-01-20     35.71667      13.230 transit`
-`## 2           1080          23 2018-09-06     61.91667      14.674 transit`
-`## 3           1080          37 2018-06-12     33.11667      12.675 transit`
-`## 4           1080          37 2018-05-02     33.11667      12.675 transit`
-`## 5           1080          51 2018-04-16     51.06667      15.156 transit`
-`## 6           1080          63 2018-11-23     84.15000      12.917 transit`
+                    date            participant_id   location_id    time_minutes   distance_km  mode        
+                1   2018-03-29      834              6              17.38333       2.317        transit
+                2   2018-05-31      2643             67             39.35000       5.511        transit
+                3   2018-06-12      3395             61             39.80000       8.816        transit
+                4   2018-06-29      804              5              36.20000      10.664        transit
+                5   2018-07-22      5786             71             21.75000       2.303        transit
 
 ... the result is:
 
