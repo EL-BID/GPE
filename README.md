@@ -64,7 +64,9 @@ To map the geocoded data, you’ll need a data frame containing participant data
 
 `GPE_plot_map(participants)`
 
-![GPE_plot_map(participants)](https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_participants.PNG)
+<p align="center">
+  <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_participants.PNG">
+</p>
 
 In order for `GPE_plot_map()` to work, the input data frame must include columns named “lat” and “lon” representing WGS84 coordinates. As previously shown, latitude and longitude columns can be obtained from addresses using `GPE_geocode()`.
 
@@ -72,26 +74,33 @@ In addition, a data frame containing locations -places that participants visit i
 
 `GPE_plot_map(participants, locations)`
 
-![GPE_plot_map(participants, locations)](https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_par_loc.PNG)
-
+<p align="center">
+  <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_par_loc.PNG">
+</p>
 
 You can also visualize participant attributes by indicating the name of the column that should be used:
 
 `GPE_plot_map(participants, locations, participant_attribute = "group")`
 
-![GPE_plot_map(participants, locations, participant_attribute = "group")](https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_bygroup.PNG)
+<p align="center">
+  <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_bygroup.PNG">
+</p>
 
 The same can be done for location attributes…
 
 `GPE_plot_map(participants, locations, location_attribute = "type")`
 
-![GPE_plot_map(participants, locations, location_attribute = "type")](https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_loc_att.PNG)
+<p align="center">
+  <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_loc_att.PNG">
+</p>
 
 … or both participant and location attributes:
 
 `GPE_plot_map(participants, locations, participant_attribute = "group", location_attribute = "type")`
 
-![GPE_plot_map(participants, locations, participant_attribute = "group", location_attribute = "type")](https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_bygroup_loc_att.PNG)
+<p align="center">
+  <img height="300" src="https://github.com/EL-BID/GPE/blob/master/man/img/plot_map_bygroup_loc_att.PNG">
+</p>
 
 
 #### Estimating travel distance and time
@@ -147,43 +156,22 @@ For example, given a data frame like:
 
 `GPE_summary(visits_timedist)`
 
-`## $`visits by participant``
-`##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. `
-`##   4.000   5.750   6.500   7.312   8.250  13.000 `
-`## `
-`## $`visits by location``
-`##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. `
-`##   1.000   3.000   4.000   4.255   6.000  10.000 `
-`## `
-`## $`travel time (minutes)` `
-`##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. `
-`##    6.30   29.00   40.16   40.53   50.27  102.17 `
-`## 
-`## $`travel distance (km)`
-`##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-`##   0.576   5.122   8.897   9.165  12.921  28.855
+        $`visits by participant`
+           Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+           4.000   5.750   6.500   7.312   8.250  13.000 
 
+        $`visits by location`
+           Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+          1.000   3.000   4.000   4.255   6.000  10.000 
 
+        $`travel time (minutes)` 
+          Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+          6.30   29.00   40.16   40.53   50.27  102.17 
 
-
-
-
-
-
-
-
-
-
-                participant_id     group      lon         lat          income_bracket
-                1                  control    -58.50748   -34.64797    4
-                2                  treatment  -58.43973   -34.60032    6
-                3                  treatment  -58.45209   -34.55733    9
-                4                  treatment  -58.44180   -34.58304    8
-                5                  control    -58.50082   -34.61289    4
-                6                  treatment  -58.50189   -34.66374    1
-                
-
-
+        $`travel distance (km)`
+          Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+         0.576   5.122   8.897   9.165  12.921  28.855
+            
 
 ## Installation guide
 
