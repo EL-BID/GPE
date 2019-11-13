@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/EL-BID/GPE.svg?token=HhDhizq3jZGfrSPBFYCg&branch=master)](https://travis-ci.com/EL-BID/GPE)
+
 # Georeferenced Program Evaluation
 
 ## Description and context
