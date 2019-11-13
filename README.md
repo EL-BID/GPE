@@ -186,7 +186,7 @@ GPE depends on the following packages:
 `ggmap`
 
 
-Some funcitons in GPE will also require a Google API key. A key can be created [here](https://cloud.google.com/maps-platform/).  For more information, use the R command `?register_google`. 
+Some funcitons in GPE will also require a Google API key. A key can be created [here](https://cloud.google.com/maps-platform/).  For more information, use the R command `?ggmap::register_google`. 
 
 ## How to contribute
 For all contributions to this project, this repository may be forked directly.
