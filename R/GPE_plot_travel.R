@@ -70,9 +70,9 @@ GPE_plot_travel <- function(visits_timedist, add_data_from = NA,
 
             p <- p + ggplot2::geom_histogram(ggplot2::aes_string(x = trip_var,
                                                                 fill = plot_attribute)) +
-                facet_wrap(as.formula(paste("~", plot_attribute))) +
+                ggplot2::facet_wrap(stats::as.formula(paste("~", plot_attribute))) +
                 set_fill_scale(visits_timedist, plot_attribute) +
-                guides(fill = FALSE)
+                ggplot2::guides(fill = FALSE)
         }
 
     } else if (plot_type == "boxplot") {
@@ -88,7 +88,7 @@ GPE_plot_travel <- function(visits_timedist, add_data_from = NA,
                                      height = 0, alpha = .3) +
                 ggplot2::geom_boxplot(ggplot2::aes_string(x = "metric", y = trip_var),
                                       fill = NA, alpha = .5, outlier.shape = NA) +
-                theme(axis.text.x=element_blank())
+                ggplot2::theme(axis.text.x = ggplot2::element_blank())
         } else {
             plot_subtitle <- paste("by", plot_attribute)
             x_label <- plot_attribute
@@ -101,7 +101,7 @@ GPE_plot_travel <- function(visits_timedist, add_data_from = NA,
                 ggplot2::geom_boxplot(ggplot2::aes_string(x = plot_attribute, y = trip_var),
                                       fill = NA, alpha = .5, outlier.shape = NA) +
                 set_color_scale(visits_timedist, plot_attribute) +
-                guides(color = FALSE)
+                ggplot2::guides(color = FALSE)
         }
 
 
@@ -109,7 +109,7 @@ GPE_plot_travel <- function(visits_timedist, add_data_from = NA,
     }
 
 
-    p + labs(title = plot_title,
+    p + ggplot2::labs(title = plot_title,
                   subtitle = plot_subtitle,
                   x = x_label,
                   y = y_label)
