@@ -17,7 +17,7 @@ GPE_geocode(data, address, key)
 A thin wrapper for ggmap::mutate_geocode. Takes a dataframe, adds lon/lat columns based on an existing address column using Google's geocoding API (https://developers.google.com/maps/documentation/geocoding/start).
 }
 \examples{
-\donttest{
+\dontrun{
 GPE_geocode(data = schools, addres = address, key = mykey)
 }
 }

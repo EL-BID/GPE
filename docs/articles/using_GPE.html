@@ -85,14 +85,14 @@
 <div id="prerequisites" class="section level2">
 <h2 class="hasAnchor">
 <a href="#prerequisites" class="anchor"></a>Prerequisites</h2>
-<p>You’ll need tabular data with addresses, or “lon” and “lat” columns containing WG84 (Mercator) location coordinates. IE, a table with the addresses of schools were program beneficiaries attend, or a street or centroid identifying their neighboorhoods, or their home addresses -if using personal data is allowed.</p>
+<p>You’ll need tabular data with addresses, or “lon” and “lat” columns containing WG84 (Mercator) location coordinates. Examples are a table with the addresses of schools that program beneficiaries attend, or a street or centroid identifying their neighborhoods, or their home addresses if using personal data is allowed.</p>
 </div>
 <div id="geocoding" class="section level2">
 <h2 class="hasAnchor">
 <a href="#geocoding" class="anchor"></a>Geocoding</h2>
-<p>You can can geocode your data (obtain latitude and longitude from addresses) via <code><a href="../reference/GPE_geocode.html">GPE_geocode()</a></code>, a function that queries the Google Maps Platform to translate addresses into latitude/longitude coordinates.</p>
+<p>You can geocode your data (obtain latitude and longitude from addresses) using <code><a href="../reference/GPE_geocode.html">GPE_geocode()</a></code>, a function that queries the Google Maps Platform to translate addresses into latitude/longitude coordinates.</p>
 <p>Using the Google Maps Platform requires a registered API key. To obtain it, follow instructions from <a href="https://developers.google.com/maps/gmp-get-started" class="uri">https://developers.google.com/maps/gmp-get-started</a>. Make sure you enable the Geocoding API.</p>
-<p>A valid API key is a string of leters and numbers that looks like <code>AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9</code> -this is not a real ID by the way, just an example-. Once you have your key, you can take a data frame with an address column like this one:</p>
+<p>A valid API key is a string of letters and numbers, for example <code>AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9</code> -this is not a real ID by the way, just an example. Once you have your key, you can take a data frame with an address column like this one:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb1-1" data-line-number="1"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span>(GPE)</a>
 <a class="sourceLine" id="cb1-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb1-3" data-line-number="3">schools</a></code></pre></div>
@@ -109,14 +109,14 @@
 ##  8 CFP 06 CIFPA    Avda. Asamblea 153, C1424COB, CABA  secondary           
 ##  9 EI Pulgarcito   Cerrito 572, C1010AAL, CABA         other               
 ## 10 Esc de la Paz   Gral. Venancio Flores 65, C1405CGA… preschool, primary,…</code></pre>
-<p>…then add latitude and longited columns with GPE_geocode, specifying the name of the address column and your Google Maps Platform API key:</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">key &lt;-<span class="st"> "AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9"</span> <span class="co"># This is not a real API key, provide yours</span></a>
+<p>…and add latitude and longitude columns using GPE_geocode, specifying the name of the address column and your Google Maps Platform API key:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb3-1" data-line-number="1">key &lt;-<span class="st"> "AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9"</span> <span class="co"># This is not a real API key, you must provide yours</span></a>
 <a class="sourceLine" id="cb3-2" data-line-number="2"></a>
 <a class="sourceLine" id="cb3-3" data-line-number="3"><span class="kw"><a href="../reference/GPE_geocode.html">GPE_geocode</a></span>(schools, address, key)</a></code></pre></div>
 <pre><code>## # A tibble: 10 x 5
 ##    name          address                      level               lon   lat
 ##    &lt;chr&gt;         &lt;chr&gt;                        &lt;chr&gt;             &lt;dbl&gt; &lt;dbl&gt;
-##  1 EMus 02       Camarones 4351, C1407FMU, C… other             -58.5 -34.6
+##  1 EMus 02       Camarones 4351, C1407FMU, C… other              NA    NA  
 ##  2 Col La Anunc… Arenales 2065, C1124AAE, CA… preschool, prima… -58.4 -34.6
 ##  3 EPjs 06       Avda. Eva Perón 7431, C1439… primary           -58.5 -34.7
 ##  4 EPjs 02       Avda. Pte. Manuel Quintana … primary           -58.4 -34.6
@@ -131,7 +131,7 @@
 <div id="mapping-geocoded-data" class="section level2">
 <h2 class="hasAnchor">
 <a href="#mapping-geocoded-data" class="anchor"></a>Mapping geocoded data</h2>
-<p>You’ll need a data frame containg participant data.</p>
+<p>You’ll need a data frame containing participant data.</p>
 <p>GPE includes “participants”, an example data frame with fictional public program beneficiaries:</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb5-1" data-line-number="1"><span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(participants)</a></code></pre></div>
 <pre><code>##   participant_id     group income_bracket
@@ -148,11 +148,11 @@
 ## 4 FIGUEROA ALCORTA, PRES. AV. Y SIVORI, EDUARDO, CABA -58.40110 -34.57915
 ## 5                     AGUIRRE Y ALVAREZ, JULIAN, CABA -58.43369 -34.59969
 ## 6                               JUNIN Y LAVALLE, CABA -58.39656 -34.60365</code></pre>
-<p>The geographic position of participants and program locations can be plotted, on top of a basemap, with:</p>
+<p>The geographic position of participants and program locations can be plotted, over a basemap, using:</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb7-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_map.html">GPE_plot_map</a></span>(participants)</a></code></pre></div>
 <p><img src="using_GPE_files/figure-html/unnamed-chunk-5-1.png" width="1458.33333333333"></p>
-<p>In order for <code><a href="../reference/GPE_plot_map.html">GPE_plot_map()</a></code> to work, the input dataframe mus include columns named “lat” and “lon” representing WGS84 coordinates. As reviously shown, latitude and longitude columns can be obtained from addresses using <code><a href="../reference/GPE_geocode.html">GPE_geocode()</a></code></p>
-<p>In addtion, a dataframe containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc-. can also be mapped. GPE includes “locations”, an example data frame with fictional public program sites:</p>
+<p>In order for <code><a href="../reference/GPE_plot_map.html">GPE_plot_map()</a></code> to work, the input data frame must include columns named “lat” and “lon” representing WGS84 coordinates. As previously shown, latitude and longitude columns can be obtained from addresses using <code><a href="../reference/GPE_geocode.html">GPE_geocode()</a></code></p>
+<p>In addition, a data frame containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc.- can also be mapped. GPE includes “locations”, an example data frame with fictional public program sites:</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb8-1" data-line-number="1"><span class="kw"><a href="https://rdrr.io/r/utils/head.html">head</a></span>(locations)</a></code></pre></div>
 <pre><code>## # A tibble: 6 x 4
 ##   location_id type    lon   lat
@@ -165,10 +165,10 @@
 ## 6           6 A     -58.4 -34.6</code></pre>
 <div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb10-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_map.html">GPE_plot_map</a></span>(participants, locations)</a></code></pre></div>
 <p><img src="using_GPE_files/figure-html/unnamed-chunk-7-1.png" width="1458.33333333333"></p>
-<p>You can also visualize participant attributes by indicating the column name for the variable to show:</p>
+<p>You can also visualize participant attributes by indicating the name of the column that should be used:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb11-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_map.html">GPE_plot_map</a></span>(participants, locations, <span class="dt">participant_attribute =</span> <span class="st">"group"</span>)</a></code></pre></div>
 <p><img src="using_GPE_files/figure-html/unnamed-chunk-8-1.png" width="1458.33333333333"></p>
-<p>Also location attributes…</p>
+<p>The same can be done for location attributes…</p>
 <div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb12-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_map.html">GPE_plot_map</a></span>(participants, locations, <span class="dt">location_attribute =</span> <span class="st">"type"</span>)</a></code></pre></div>
 <p><img src="using_GPE_files/figure-html/unnamed-chunk-9-1.png" width="1458.33333333333"></p>
 <p>… or both participant and location attributes:</p>
@@ -178,7 +178,7 @@
 <div id="estimating-travel-distance-and-time" class="section level2">
 <h2 class="hasAnchor">
 <a href="#estimating-travel-distance-and-time" class="anchor"></a>Estimating travel distance and time</h2>
-<p>Having records of interaction between people and places -representing trips of consumers/beneficiaries to points of sale/access- time and distance travelled can be estimated by using the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.</p>
+<p>Using records of interaction between people and places -representing trips by consumers/beneficiaries to points of sale/access- GPE can estimate time and distance travelled with the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.</p>
 <p>GPE provides an example “visits” data frame:</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb14-1" data-line-number="1">visits</a></code></pre></div>
 <pre><code>## # A tibble: 10 x 3
@@ -251,7 +251,25 @@
 <div id="visualization" class="section level2">
 <h2 class="hasAnchor">
 <a href="#visualization" class="anchor"></a>Visualization</h2>
-<p>…. COMING SOON</p>
+<p>Travel patterns can be visualized using <code><a href="../reference/GPE_plot_travel.html">GPE_plot_travel()</a></code>.</p>
+<p>The function takes a visits data frame that includes <code>time_minutes</code> and <code>distance_km</code> columns (i.e. as a result of using <code><a href="../reference/GPE_travel_time_dist.html">GPE_travel_time_dist()</a></code>. By default, it show an histogram with the distribution of travel time (in minutes):</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb22-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_travel.html">GPE_plot_travel</a></span>(visits_timedist)</a></code></pre></div>
+<p><img src="using_GPE_files/figure-html/unnamed-chunk-16-1.png" width="1458.33333333333"></p>
+<p>Setting the parameter <code>metric = "time"</code> can be used to used to show travel distance (in kilometers) instead of time:</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb23-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_travel.html">GPE_plot_travel</a></span>(visits_timedist, <span class="dt">metric =</span> <span class="st">"distance"</span>)</a></code></pre></div>
+<p><img src="using_GPE_files/figure-html/unnamed-chunk-17-1.png" width="1458.33333333333"></p>
+<p>Instead of an histogram, a <a href="https://en.wikipedia.org/wiki/Box_plot">boxplot</a> can be obtained by setting the parameter <code>plot_type = "boxplot"</code>:</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb24-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_travel.html">GPE_plot_travel</a></span>(visits_timedist, <span class="dt">plot_type =</span> <span class="st">"boxplot"</span>)</a></code></pre></div>
+<p><img src="using_GPE_files/figure-html/unnamed-chunk-18-1.png" width="1458.33333333333"></p>
+<p>Optionally, an additional data frame can be used as input to merge it with the travel data and plot any of its attributes. This data frame must be contain either participants a locations; that is, besides the attribute to plot it must contain either a “location_id” or a “participant_id” column. When an additional dataframe is used, also specify the name of the column to plot.</p>
+<p>For example, to show travel time by participant income level:</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb25-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_travel.html">GPE_plot_travel</a></span>(visits_timedist, <span class="dt">add_data_from =</span> participants, <span class="dt">plot_attribute =</span> <span class="st">"income_bracket"</span>)</a></code></pre></div>
+<p><img src="using_GPE_files/figure-html/unnamed-chunk-19-1.png" width="1458.33333333333"></p>
+<p>To show travel distance by location type, with boxplots:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb26-1" data-line-number="1"><span class="kw"><a href="../reference/GPE_plot_travel.html">GPE_plot_travel</a></span>(visits_timedist, </a>
+<a class="sourceLine" id="cb26-2" data-line-number="2">                <span class="dt">add_data_from =</span> locations, <span class="dt">plot_attribute =</span> <span class="st">"type"</span>, </a>
+<a class="sourceLine" id="cb26-3" data-line-number="3">                <span class="dt">plot_type =</span> <span class="st">"boxplot"</span>, <span class="dt">metric =</span> <span class="st">"distance"</span>)</a></code></pre></div>
+<p><img src="using_GPE_files/figure-html/unnamed-chunk-20-1.png" width="1458.33333333333"></p>
 </div>
   </div>
 

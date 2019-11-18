@@ -8,7 +8,7 @@
 #' @param key an API key obtained at https://cloud.google.com/maps-platform/
 #' @param transport_mode (optional) either "transit" (default), "driving", "walking", or "bicycling"
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
 #' }
 

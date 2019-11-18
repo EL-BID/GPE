@@ -6,7 +6,7 @@
 #' @param address the name of a column in the geocode dataframe containing addresses
 #' @param key an API key obtained at https://cloud.google.com/maps-platform/
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' GPE_geocode(data = schools, addres = address, key = mykey)
 #' }
 

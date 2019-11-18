@@ -13,15 +13,15 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, dpi = 200)
 
 ## Prerequisites
 
-You'll need tabular data with addresses, or "lon" and "lat" columns containing WG84 (Mercator) location coordinates. Examples are a table with the addresses of schools were program beneficiaries attend, or a street or centroid identifying their neighboorhoods, or their home addresses -if using personal data is allowed.
+You'll need tabular data with addresses, or "lon" and "lat" columns containing WG84 (Mercator) location coordinates. Examples are a table with the addresses of schools that program beneficiaries attend, or a street or centroid identifying their neighborhoods, or their home addresses if using personal data is allowed.
 
 ## Geocoding
 
-You can can geocode your data (obtain latitude and longitude from addresses) via `GPE_geocode()`, a function that queries the Google Maps Platform to translate addresses into latitude/longitude coordinates. 
+You can geocode your data (obtain latitude and longitude from addresses) using `GPE_geocode()`, a function that queries the Google Maps Platform to translate addresses into latitude/longitude coordinates. 
 
 Using the Google Maps Platform requires a registered API key. To obtain it, follow instructions from  https://developers.google.com/maps/gmp-get-started. Make sure you enable the Geocoding API.
 
-A valid API key is a string of leters and numbers that looks like `AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9` -this is not a real ID by the way, just an example-. Once you have your key, you can take a data frame with an address column like this one:
+A valid API key is a string of letters and numbers, for example `AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9` -this is not a real ID by the way, just an example. Once you have your key, you can take a data frame with an address column like this one:
 
 ```{r}
 library(GPE)
@@ -29,10 +29,10 @@ library(GPE)
 schools
 ```
 
-...then add latitude and longited columns with GPE_geocode, specifying the name of the address column and your Google Maps Platform API key:
+...and add latitude and longitude columns using GPE_geocode, specifying the name of the address column and your Google Maps Platform API key:
 
 ```{r eval=FALSE}
-key <- "AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9" # This is not a real API key, provide yours
+key <- "AIjaSyBR76W62lloYPh_c01LYGhCOZuKU6RVW9" # This is not a real API key, you must provide yours
 
 GPE_geocode(schools, address, key)
 ```
@@ -47,7 +47,7 @@ Columns with latitude and longitude coordinates are added to the original data f
 
 ## Mapping geocoded data
 
-You'll need a data frame containg participant data. 
+You'll need a data frame containing participant data. 
 
 GPE includes "participants", an example data frame with fictional public program beneficiaries:
 
@@ -56,15 +56,15 @@ head(participants)
 ```
 
 
-The geographic position of participants and program locations can be plotted, on top of a basemap, with:
+The geographic position of participants and program locations can be plotted, over a basemap, using:
 
 ```{r}
 GPE_plot_map(participants)
 ```
 
-In order for `GPE_plot_map()` to work, the input dataframe mus include columns named "lat" and "lon" representing WGS84 coordinates. As reviously shown, latitude and longitude columns can be obtained from addresses using `GPE_geocode()`
+In order for `GPE_plot_map()` to work, the input data frame must include columns named "lat" and "lon" representing WGS84 coordinates. As previously shown, latitude and longitude columns can be obtained from addresses using `GPE_geocode()`
 
-In addtion, a dataframe containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc-. can also be mapped. GPE includes "locations", an example data frame with fictional public program sites:
+In addition, a data frame containing locations -places that participants visit in order to interact with the program, such as training centers, day care providers, etc.- can also be mapped. GPE includes "locations", an example data frame with fictional public program sites:
 
 ```{r}
 head(locations)
@@ -74,13 +74,13 @@ head(locations)
 GPE_plot_map(participants, locations)
 ```
 
-You can also visualize participant attributes by indicating the column name for the variable to show:
+You can also visualize participant attributes by indicating the name of the column that should be used:
 
 ```{r}
 GPE_plot_map(participants, locations, participant_attribute = "group")
 ```
 
-Also location attributes...
+The same can be done for location attributes...
 
 ```{r}
 GPE_plot_map(participants, locations, location_attribute = "type")
@@ -96,7 +96,7 @@ GPE_plot_map(participants, locations, participant_attribute = "group", location_
 
 ## Estimating travel distance and time
 
-Having records of interaction between people and places -representing trips of consumers/beneficiaries to points of sale/access- time and distance travelled can be estimated by using the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.
+Using records of interaction between people and places -representing trips by consumers/beneficiaries to points of sale/access- GPE can estimate time and distance travelled with the Google Maps Platform. As is the case with geocoding, a valid API key is needed to access this service.
 
 GPE provides an example "visits" data frame:
 
@@ -143,4 +143,39 @@ GPE_summary(visits_timedist)
 
 ## Visualization
 
-.... COMING SOON
+Travel patterns can be visualized using `GPE_plot_travel()`. 
+
+The function takes a visits data frame that includes `time_minutes` and `distance_km` columns (i.e. as a result of using `GPE_travel_time_dist()`. By default, it show an histogram with the distribution of travel time (in minutes):
+
+```{r}
+GPE_plot_travel(visits_timedist)
+```
+
+Setting the parameter `metric = "time"` can be used  to used to show travel distance (in kilometers) instead of time:
+
+```{r}
+GPE_plot_travel(visits_timedist, metric = "distance")
+```
+
+Instead of an histogram, a [boxplot](https://en.wikipedia.org/wiki/Box_plot) can be obtained by setting the parameter `plot_type = "boxplot"`:
+
+```{r}
+GPE_plot_travel(visits_timedist, plot_type = "boxplot")
+```
+
+Optionally, an additional data frame can be used as input to merge it with the travel data and plot any of its attributes. This data frame must be contain either participants a locations; that is, besides the attribute to plot it must contain either a "location_id" or a "participant_id" column. When an additional dataframe is used, also specify the name of the column to plot. 
+
+For example, to show travel time by participant income level:
+
+```{r}
+GPE_plot_travel(visits_timedist, add_data_from = participants, plot_attribute = "income_bracket")
+```
+
+To show travel distance by location type, with boxplots:
+
+```{r}
+GPE_plot_travel(visits_timedist, 
+                add_data_from = locations, plot_attribute = "type", 
+                plot_type = "boxplot", metric = "distance")
+```
+

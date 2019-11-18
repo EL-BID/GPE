@@ -22,7 +22,7 @@ GPE_travel_time_dist(visits, participants, locations, key,
 Estimate travel time and distance between origins and destinations
 }
 \examples{
-\donttest{
+\dontrun{
 GPE_travel_time_dist(visits, participants, locations, key, transport_mode = "walking")
 }
 }

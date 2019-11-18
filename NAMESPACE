@@ -3,5 +3,6 @@
 export(GPE_geocode)
 export(GPE_get_basemap)
 export(GPE_plot_map)
+export(GPE_plot_travel)
 export(GPE_summary)
 export(GPE_travel_time_dist)

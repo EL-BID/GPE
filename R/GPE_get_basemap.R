@@ -6,7 +6,7 @@
 #' @param locations a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates
 #'
 #' @examples
-#' \donttest{
+#' \dontrun{
 #' GPE_get_basemap(participants = participants, locations = locations)
 #' }
 

@@ -13,7 +13,5 @@ GPE_summary(visits)
 Plot a map showing participants, and program locations
 }
 \examples{
-\donttest{
 GPE_summary(visits = visits)
-}
 }

@@ -4,9 +4,7 @@
 #' @export GPE_summary
 #' @param visits a dataframe of "visits", events when a participant visited a location, containing "participant_id" and "location_id" columns
 #' @examples
-#' \donttest{
 #' GPE_summary(visits = visits)
-#' }
 
 
 GPE_summary <- function(visits) {

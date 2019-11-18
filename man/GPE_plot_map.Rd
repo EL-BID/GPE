@@ -12,15 +12,13 @@ GPE_plot_map(participants, locations = NULL,
 
 \item{locations}{a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates}
 
-\item{participant_attribute}{(optional) a participants dataframe column containing an attribute to show in the map}
+\item{participant_attribute}{(optional) a participants dataframe column containing an attribute to show on the map}
 
-\item{location_attribute}{(optional) a locations dataframe column containing an attribute to show in the map}
+\item{location_attribute}{(optional) a locations dataframe column containing an attribute to show on the map}
 }
 \description{
 Plot a map showing participants, and program locations
 }
 \examples{
-\donttest{
 GPE_plot_map(participants = participants, locations = locations)
-}
 }

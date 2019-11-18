@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>GPE_plot_map — GPE_plot_map • GPE</title>
+<title>GPE_plot_travel — GPE_plot_travel • GPE</title>
 
 <!-- jquery -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
@@ -32,9 +32,9 @@
 
 
 
-<meta property="og:title" content="GPE_plot_map — GPE_plot_map" />
+<meta property="og:title" content="GPE_plot_travel — GPE_plot_travel" />
 
-<meta property="og:description" content="Plot a map showing participants, and program locations" />
+<meta property="og:description" content="Plot a visualization showing participant travel time" />
 <meta name="twitter:card" content="summary" />
 
 
@@ -110,45 +110,49 @@
 <div class="row">
   <div class="col-md-9 contents">
     <div class="page-header">
-    <h1>GPE_plot_map</h1>
+    <h1>GPE_plot_travel</h1>
     
-    <div class="hidden name"><code>GPE_plot_map.Rd</code></div>
+    <div class="hidden name"><code>GPE_plot_travel.Rd</code></div>
     </div>
 
     <div class="ref-description">
     
-    <p>Plot a map showing participants, and program locations</p>
+    <p>Plot a visualization showing participant travel time</p>
     
     </div>
 
-    <pre class="usage"><span class='fu'>GPE_plot_map</span>(<span class='no'>participants</span>, <span class='kw'>locations</span> <span class='kw'>=</span> <span class='kw'>NULL</span>,
-  <span class='kw'>participant_attribute</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>location_attribute</span> <span class='kw'>=</span> <span class='fl'>NA</span>)</pre>
+    <pre class="usage"><span class='fu'>GPE_plot_travel</span>(<span class='no'>visits_timedist</span>, <span class='kw'>add_data_from</span> <span class='kw'>=</span> <span class='fl'>NA</span>,
+  <span class='kw'>plot_attribute</span> <span class='kw'>=</span> <span class='fl'>NA</span>, <span class='kw'>plot_type</span> <span class='kw'>=</span> <span class='st'>"histogram"</span>, <span class='kw'>metric</span> <span class='kw'>=</span> <span class='st'>"time"</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
     <colgroup><col class="name" /><col class="desc" /></colgroup>
     <tr>
-      <th>participants</th>
-      <td><p>a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates</p></td>
+      <th>visits_timedist</th>
+      <td><p>a dataframe of "visits" with travel time and distance (see ?GPE_travel_time_dist)</p></td>
     </tr>
     <tr>
-      <th>locations</th>
-      <td><p>a dataframe containing "lon" and "lat" columns with WGS84 (Mercator) coordinates</p></td>
+      <th>add_data_from</th>
+      <td><p>(optional) a participants or locations dataframe, containing either a "participant_id" or a "location_id" column, plus a column with an attribute to plot. Must be paired with "plot_attribute"</p></td>
     </tr>
     <tr>
-      <th>participant_attribute</th>
-      <td><p>(optional) a participants dataframe column containing an attribute to show on the map</p></td>
+      <th>plot_attribute</th>
+      <td><p>(optional) the column name from the "add_data" dataframe containing the attribute to show on the plot</p></td>
     </tr>
     <tr>
-      <th>location_attribute</th>
-      <td><p>(optional) a locations dataframe column containing an attribute to show on the map</p></td>
+      <th>plot_type</th>
+      <td><p>(optional) either "histogram" (default), "boxplot"</p></td>
+    </tr>
+    <tr>
+      <th>metric</th>
+      <td><p>(optional) measure for travel, either "time" (default), or "distance"</p></td>
     </tr>
     </table>
     
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'># \donttest{</span>
-<span class='fu'>GPE_plot_map</span>(<span class='kw'>participants</span> <span class='kw'>=</span> <span class='no'>participants</span>, <span class='kw'>locations</span> <span class='kw'>=</span> <span class='no'>locations</span>)</div><div class='img'><img src='GPE_plot_map-1.png' alt='' width='700' height='433' /></div><div class='input'># }
+<span class='fu'>GPE_plot_travel</span>(<span class='kw'>participants</span> <span class='kw'>=</span> <span class='no'>participants</span>, <span class='kw'>locations</span> <span class='kw'>=</span> <span class='no'>locations</span>)</div><div class='output co'>#&gt; <span class='error'>Error in GPE_plot_travel(participants = participants, locations = locations): unused arguments (participants = participants, locations = locations)</span></div><div class='input'># }
 </div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">

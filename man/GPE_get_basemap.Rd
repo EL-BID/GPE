@@ -15,7 +15,7 @@ GPE_get_basemap(participants, locations)
 Get a basemap from Stamen Maps (http://maps.stamen.com/)
 }
 \examples{
-\donttest{
+\dontrun{
 GPE_get_basemap(participants = participants, locations = locations)
 }
 }
