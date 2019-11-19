@@ -4,7 +4,7 @@
 
 ## Description and context
 
-The R package GPE (Georeferenced Program Evaluation), includes functions that will allow the user to study various aspects of consumer or beneficiary behavior, including:
+The GPE (Georeferenced Program Evaluation) R package includes functions that will allow the user to study various aspects of consumer or beneficiary behavior, including:
 
 - Georeference postal addresses (converting street name and number to latitude and longitude points)
 
